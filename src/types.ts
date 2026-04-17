@@ -12,7 +12,6 @@ export interface AskQuestionInput {
 	label?: string;
 	prompt: string;
 	type?: AskQuestionType;
-	allowOther?: boolean;
 	required?: boolean;
 	options: AskOption[];
 }
@@ -23,10 +22,9 @@ export interface AskParams {
 }
 
 export interface AskQuestion
-	extends Omit<AskQuestionInput, "type" | "allowOther" | "required" | "label"> {
+	extends Omit<AskQuestionInput, "type" | "required" | "label"> {
 	label: string;
 	type: AskQuestionType;
-	allowOther: boolean;
 	required: boolean;
 }
 

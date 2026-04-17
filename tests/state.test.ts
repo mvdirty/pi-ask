@@ -54,12 +54,12 @@ test("normalize defaults via initial state", () => {
 
 	assert.equal(state.questions[0].label, "Q1");
 	assert.equal(state.questions[0].type, "single");
-	assert.equal(state.questions[0].allowOther, true);
 	assert.equal(state.questions[0].required, true);
 	assert.equal(
 		getRenderableOptions(state.questions[0]).at(-1)?.label,
 		"Type your own",
 	);
+	assert.equal(getRenderableOptions(state.questions[0]).at(-1)?.isOther, true);
 });
 
 test("preview questions keep their type and option previews", () => {

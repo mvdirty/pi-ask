@@ -7,6 +7,7 @@ import {
 	truncateToWidth,
 	visibleWidth,
 } from "@mariozechner/pi-tui";
+import { wrapText } from "./text.ts";
 import {
 	applyNumberShortcut,
 	cancelFlow,
@@ -293,33 +294,70 @@ function renderSubmit(
 	theme: ExtensionContext["ui"]["theme"],
 	width: number,
 ) {
-	const add = (text = "") => lines.push(truncateToWidth(text, width));
-	add(` ${theme.fg("accent", theme.bold("Review your answers"))}`);
-	add();
+	pushWrappedText(
+		lines,
+		"Review your answers",
+		width,
+		theme,
+		"accent",
+		" ",
+		" ",
+	);
+	lines.push("");
 
 	for (const question of state.questions) {
 		const answer = getAnswer(state, question.id);
-		add(` ${theme.fg("muted", `● ${question.prompt}`)}`);
+		pushWrappedText(
+			lines,
+			question.prompt,
+			width,
+			theme,
+			"muted",
+			" ● ",
+			"   ",
+		);
 		if (!answer) {
-			add(`   ${theme.fg("warning", "→ (unanswered)")}`);
+			lines.push(
+				truncateToWidth(`   ${theme.fg("warning", "→ (unanswered)")}`, width),
+			);
 			continue;
 		}
 		const answerText = answer.customText ?? answer.labels.join(", ");
-		add(
-			`   ${theme.fg(answer.customText ? "text" : "success", `→ ${answerText}`)}`,
+		pushWrappedText(
+			lines,
+			`→ ${answerText}`,
+			width,
+			theme,
+			answer.customText ? "text" : "success",
+			"   ",
+			"     ",
 		);
 	}
 
-	add();
-	add(` ${theme.fg("success", "Ready to submit your answers?")}`);
-	add();
+	lines.push("");
+	pushWrappedText(
+		lines,
+		"Ready to submit your answers?",
+		width,
+		theme,
+		"success",
+		" ",
+		" ",
+	);
+	lines.push("");
 
 	const options = ["Submit answers", "Cancel"];
 	for (let i = 0; i < options.length; i++) {
 		const selected = i === state.submitIndex;
-		const prefix = selected ? theme.fg("accent", "❯ ") : "  ";
-		add(
-			`${prefix}${theme.fg(selected ? "accent" : "text", `${i + 1}. ${options[i]}`)}`,
+		const prefix = selected ? "❯ " : "  ";
+		pushWrappedText(
+			lines,
+			`${i + 1}. ${options[i]}`,
+			width,
+			theme,
+			selected ? "accent" : "text",
+			prefix,
+			prefix,
 		);
 	}
 }
@@ -371,7 +409,7 @@ function renderQuestionPrompt(
 	theme: ExtensionContext["ui"]["theme"],
 	width: number,
 ) {
-	lines.push(truncateToWidth(` ${theme.fg("text", prompt)}`, width));
+	pushWrappedText(lines, prompt, width, theme, "text", " ", " ");
 	lines.push("");
 }
 
@@ -385,7 +423,6 @@ function renderStandardQuestion(
 	editor: Editor,
 	newLineHint: string,
 ) {
-	const add = (text = "") => lines.push(truncateToWidth(text, width));
 	const isMulti = question.type === "multi";
 	const answer = getAnswer(state, question.id);
 	for (let i = 0; i < options.length; i++) {
@@ -394,7 +431,7 @@ function renderStandardQuestion(
 		const isAnsweredOption = option.isOther
 			? !!answer?.customText
 			: !!answer?.values.includes(option.value);
-		const pointer = selected ? theme.fg("accent", "❯ ") : "  ";
+		const pointer = selected ? "❯ " : "  ";
 		const prefix =
 			isMulti && !option.isOther ? `[${isAnsweredOption ? "x" : " "}] ` : "";
 		const optionColor = isAnsweredOption
@@ -402,26 +439,54 @@ function renderStandardQuestion(
 			: selected
 				? "accent"
 				: "text";
-		add(
-			`${pointer}${theme.fg(optionColor, `${i + 1}. ${prefix}${option.label}`)}`,
+		pushWrappedText(
+			lines,
+			`${i + 1}. ${prefix}${option.label}`,
+			width,
+			theme,
+			optionColor,
+			pointer,
+			" ".repeat(visibleWidth(pointer)),
 		);
 		if (option.description) {
-			add(`     ${theme.fg("muted", option.description)}`);
+			pushWrappedText(
+				lines,
+				option.description,
+				width,
+				theme,
+				"muted",
+				"     ",
+				"     ",
+			);
 		}
 		if (option.isOther && selected && state.mode === "input") {
 			for (const editorLine of editor.render(Math.max(8, width - 7))) {
-				add(`     ${renderInputLine(editorLine, width - 5, theme)}`);
+				lines.push(
+					truncateToWidth(
+						`     ${renderInputLine(editorLine, width - 5, theme)}`,
+						width,
+					),
+				);
 			}
-			add(
-				`     ${theme.fg("dim", `${newLineHint} newline · Enter submit · Esc save and close`)}`,
+			lines.push(
+				truncateToWidth(
+					`     ${theme.fg("dim", `${newLineHint} newline · Enter submit · Esc save and close`)}`,
+					width,
+				),
 			);
 		}
 		if (option.isOther && state.mode !== "input") {
 			const customText = answer?.customText;
 			if (customText) {
-				for (const customLine of customText.split("\n")) {
-					add(`     ${theme.fg("muted", customLine)}`);
-				}
+				pushWrappedText(
+					lines,
+					customText,
+					width,
+					theme,
+					"muted",
+					"     ",
+					"     ",
+				);
 			}
 		}
 	}
@@ -476,7 +541,10 @@ function renderPreviewQuestion(
 
 	if (selectedOption?.isOther && state.mode !== "input" && answer?.customText) {
 		add("");
-		for (const customLine of answer.customText.split("\n")) {
+		for (const customLine of wrapText(
+			answer.customText,
+			Math.max(1, width - 5),
+		)) {
 			add(` ${theme.fg("muted", customLine)}`);
 		}
 	}
@@ -490,7 +558,6 @@ function renderPreviewOptionList(
 	width: number,
 ): string[] {
 	const lines: string[] = [];
-	const add = (text = "") => lines.push(truncateToWidth(text, width));
 	const answer = getAnswer(state, question.id);
 	for (let i = 0; i < options.length; i++) {
 		const option = options[i];
@@ -498,15 +565,31 @@ function renderPreviewOptionList(
 		const isAnsweredOption = option.isOther
 			? !!answer?.customText
 			: !!answer?.values.includes(option.value);
-		const pointer = selected ? theme.fg("accent", "❯ ") : "  ";
+		const pointer = selected ? "❯ " : "  ";
 		const optionColor = isAnsweredOption
 			? "success"
 			: selected
 				? "accent"
 				: "text";
-		add(`${pointer}${theme.fg(optionColor, `${i + 1}. ${option.label}`)}`);
+		pushWrappedText(
+			lines,
+			`${i + 1}. ${option.label}`,
+			width,
+			theme,
+			optionColor,
+			pointer,
+			" ".repeat(visibleWidth(pointer)),
+		);
 		if (option.description) {
-			add(`     ${theme.fg("muted", option.description)}`);
+			pushWrappedText(
+				lines,
+				option.description,
+				width,
+				theme,
+				"muted",
+				"     ",
+				"     ",
+			);
 		}
 	}
 	return lines;
@@ -520,36 +603,39 @@ function renderPreviewPane(
 	const paneWidth = Math.max(10, width);
 	if (!selectedOption) {
 		return renderBox(
-			[theme.fg("dim", "No preview available")],
+			[{ text: "No preview available", color: "dim" }],
 			paneWidth,
 			theme,
 		);
 	}
 
-	const content: string[] = [];
-	content.push(theme.fg("accent", theme.bold(selectedOption.label)));
+	const content: Array<{
+		text: string;
+		color: "accent" | "muted" | "text" | "dim";
+	}> = [];
+	content.push({ text: selectedOption.label, color: "accent" });
 	if (selectedOption.description) {
-		content.push(theme.fg("muted", selectedOption.description));
+		content.push({ text: selectedOption.description, color: "muted" });
 	}
 	if (selectedOption.preview) {
 		if (content.length) {
-			content.push("");
+			content.push({ text: "", color: "dim" });
 		}
 		for (const previewLine of selectedOption.preview.split("\n")) {
-			content.push(theme.fg("text", previewLine));
+			content.push({ text: previewLine, color: "text" });
 		}
 	} else {
 		if (content.length) {
-			content.push("");
+			content.push({ text: "", color: "dim" });
 		}
-		content.push(theme.fg("dim", "No preview available"));
+		content.push({ text: "No preview available", color: "dim" });
 	}
 
 	return renderBox(content, paneWidth, theme);
 }
 
 function renderBox(
-	content: string[],
+	content: Array<{ text: string; color: "accent" | "muted" | "text" | "dim" }>,
 	width: number,
 	theme: ExtensionContext["ui"]["theme"],
 ): string[] {
@@ -558,12 +644,14 @@ function renderBox(
 	const top = theme.fg("accent", `┌${"─".repeat(innerWidth)}┐`);
 	const bottom = theme.fg("accent", `└${"─".repeat(innerWidth)}┘`);
 	const lines = [top];
-	for (const rawLine of content) {
-		const line = truncateToWidth(rawLine, innerWidth);
-		const padding = " ".repeat(Math.max(0, innerWidth - visibleWidth(line)));
-		lines.push(
-			theme.fg("accent", "│") + line + padding + theme.fg("accent", "│"),
-		);
+	for (const item of content) {
+		for (const rawLine of wrapText(item.text, innerWidth)) {
+			const line = theme.fg(item.color, rawLine);
+			const padding = " ".repeat(Math.max(0, innerWidth - visibleWidth(line)));
+			lines.push(
+				theme.fg("accent", "│") + line + padding + theme.fg("accent", "│"),
+			);
+		}
 	}
 	lines.push(bottom);
 	return lines;
@@ -611,6 +699,29 @@ function measurePreviewLeftWidth(
 
 function clamp(value: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, value));
+}
+
+function pushWrappedText(
+	lines: string[],
+	text: string,
+	width: number,
+	theme: ExtensionContext["ui"]["theme"],
+	color: "accent" | "muted" | "text" | "dim" | "success" | "warning",
+	prefix = "",
+	continuationPrefix = prefix,
+) {
+	const availableWidth = Math.max(1, width - visibleWidth(prefix));
+	const wrapped = wrapText(text, availableWidth);
+	for (let index = 0; index < wrapped.length; index++) {
+		const line = wrapped[index];
+		const currentPrefix = index === 0 ? prefix : continuationPrefix;
+		lines.push(
+			truncateToWidth(`${currentPrefix}${theme.fg(color, line)}`, width),
+		);
+	}
+	if (wrapped.length === 0) {
+		lines.push(truncateToWidth(prefix, width));
+	}
 }
 
 function renderFooter(

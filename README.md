@@ -70,6 +70,7 @@ Note: some Zed settings such as global extension auto-install and autosave are n
 The extension registers a tool named `ask_user`.
 
 Use it when the agent needs structured clarification before proceeding.
+Use `type: "preview"` when the choice needs a dedicated preview pane (for example, code snippets, layouts, configuration examples, or other rich previews).
 
 ### Input shape
 
@@ -84,7 +85,6 @@ Use it when the agent needs structured clarification before proceeding.
       label?: string,
       prompt: string,
       type?: "single" | "multi" | "preview",
-      allowOther?: boolean,
       required?: boolean, // metadata only; submit is never blocked
       options: [
         {
@@ -150,8 +150,7 @@ The current prototype supports:
 - tabbed multi-question flow
 - single-select questions
 - multi-select questions
-- preview questions with a dedicated preview pane and no `Type your own` fallback
-- fixed `Type your own` fallback option that preserves typed text when dismissed
+- preview questions with a dedicated preview pane
 - number-key quick selection
 - final submit/review page
 - transcript rendering for call/result rows
@@ -168,9 +167,9 @@ Ask 1-3 concise questions.
 Use short tab labels.
 Prefer 2-4 options per question.
 Include descriptions for each option.
-Allow custom input when the fixed choices may be insufficient.
 Use `type: "single"` unless multiple options can genuinely apply.
 Use `type: "multi"` only when the user may need to select several answers.
+Use `type: "preview"` when an option needs a preview panel.
 After answers are returned, continue the task using those answers explicitly.
 ```
 

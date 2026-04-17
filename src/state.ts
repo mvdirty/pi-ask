@@ -24,7 +24,6 @@ function normalizeQuestion(
 		...question,
 		label: question.label?.trim() || `Q${index + 1}`,
 		type: question.type ?? "single",
-		allowOther: question.allowOther !== false,
 		required: question.required !== false,
 	};
 }
@@ -57,7 +56,7 @@ export function getRenderableOptions(question?: AskQuestion): RenderOption[] {
 		return [];
 	}
 	const options: RenderOption[] = [...question.options];
-	if (question.type !== "preview" && question.allowOther) {
+	if (question.type !== "preview") {
 		options.push({
 			value: OTHER_VALUE,
 			label: "Type your own",

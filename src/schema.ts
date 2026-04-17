@@ -10,7 +10,8 @@ export const AskOptionSchema = Type.Object({
 	),
 	preview: Type.Optional(
 		Type.String({
-			description: "Optional preview text, used by richer question variants",
+			description:
+				"Optional preview text shown in the dedicated preview pane for preview questions",
 		}),
 	),
 });
@@ -26,9 +27,6 @@ export const AskQuestionSchema = Type.Object({
 			[Type.Literal("single"), Type.Literal("multi"), Type.Literal("preview")],
 			{ description: "Question type" },
 		),
-	),
-	allowOther: Type.Optional(
-		Type.Boolean({ description: "Include a fixed 'Type something.' option" }),
 	),
 	required: Type.Optional(
 		Type.Boolean({
