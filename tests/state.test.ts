@@ -122,6 +122,20 @@ test("multi-select space toggles current option and enter advances to submit", (
 	assert.equal(state.completed, false);
 });
 
+test("single-select space toggles the active option without advancing", () => {
+	let state = createInitialState(sampleParams());
+	state = toggleCurrentMultiOption(state);
+
+	assert.equal(state.answers.lang.selected[0].label, "Python");
+	assert.equal(state.activeTabIndex, 0);
+	assert.equal(state.view.kind, "navigate");
+
+	state = toggleCurrentMultiOption(state);
+	assert.equal(state.answers.lang, undefined);
+	assert.equal(state.activeTabIndex, 0);
+	assert.equal(state.view.kind, "navigate");
+});
+
 test("submit can complete even when some questions are unanswered", () => {
 	let state = createInitialState(sampleParams());
 	state = moveTab(state, -1);

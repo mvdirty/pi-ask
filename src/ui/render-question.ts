@@ -15,7 +15,7 @@ import {
 	mergeColumns,
 	pushWrappedText,
 	renderEditorBlock,
-	renderHint,
+	renderInputLine,
 	renderPreviewPaneContent,
 } from "./render-helpers.ts";
 import type {
@@ -39,7 +39,7 @@ export function renderQuestionScreen(context: QuestionRenderContext) {
 }
 
 function renderQuestionNote(context: QuestionRenderContext) {
-	const { lines, state, question, theme, width, editor, newLineHint } = context;
+	const { lines, state, question, theme, width, editor } = context;
 	if (isQuestionNoteOpen(state, question.id)) {
 		pushWrappedText(
 			lines,
@@ -62,7 +62,8 @@ function renderQuestionNote(context: QuestionRenderContext) {
 			theme,
 			indent: "   ",
 			availableWidth: width - 3,
-			hint: renderHint(UI_TEXT.hintSave, newLineHint),
+			placeholder: UI_TEXT.editorPlaceholderNote,
+			isEmpty: editor.getText().length === 0,
 		});
 		lines.push("");
 		return;
@@ -105,6 +106,10 @@ function renderStandardOption(
 	const pointer = selected ? "❯ " : "  ";
 	const prefix = getOptionPrefix(question.type, option, isAnsweredOption);
 	const optionColor = getOptionColor(isAnsweredOption, selected);
+	if (option.isCustomOption && selected && isInputOpenForQuestion(state, question.id)) {
+		renderInteractiveCustomOption(context, index, pointer, prefix, optionColor);
+		return;
+	}
 
 	pushWrappedText(
 		lines,
@@ -321,25 +326,13 @@ function renderOptionEditor(
 	context: OptionDetailRenderContext,
 	renderState: ReturnType<typeof getOptionDetailRenderState>,
 ): boolean {
-	const { lines, editor, width, theme, newLineHint } = context;
+	const { lines, editor, width, theme } = context;
 	if (renderState.noteOpen) {
-		renderIndentedEditor(
-			lines,
-			editor,
-			width,
-			theme,
-			renderHint(UI_TEXT.hintSave, newLineHint),
-		);
+		renderIndentedEditor(lines, editor, width, theme, UI_TEXT.editorPlaceholderNote);
 		return true;
 	}
 	if (renderState.inputOpen) {
-		renderIndentedEditor(
-			lines,
-			editor,
-			width,
-			theme,
-			renderHint(UI_TEXT.hintSubmit, newLineHint),
-		);
+		renderIndentedEditor(lines, editor, width, theme, UI_TEXT.editorPlaceholderInput);
 		return true;
 	}
 	return false;
@@ -389,7 +382,7 @@ function renderIndentedEditor(
 	editor: QuestionRenderContext["editor"],
 	width: number,
 	theme: Theme,
-	hint: string,
+	placeholder: string,
 ) {
 	renderEditorBlock({
 		lines,
@@ -403,7 +396,8 @@ function renderIndentedEditor(
 		theme,
 		indent: "     ",
 		availableWidth: width - 5,
-		hint,
+		placeholder,
+		isEmpty: editor.getText().length === 0,
 	});
 }
 
@@ -416,6 +410,36 @@ function getOptionPrefix(
 		return "";
 	}
 	return `[${isAnsweredOption ? "x" : " "}] `;
+}
+
+function renderInteractiveCustomOption(
+	context: QuestionRenderContext,
+	index: number,
+	pointer: string,
+	prefix: string,
+	optionColor: ReturnType<typeof getOptionColor>,
+) {
+	const { lines, editor, theme, width } = context;
+	const label = `${index + 1}. ${prefix}`;
+	const availableWidth = Math.max(
+		1,
+		width - visibleWidth(pointer) - visibleWidth(label),
+	);
+	const text = editor.getText().replace(/\n/g, " ");
+	const hasText = text.trim().length > 0;
+	const inputText = hasText ? text : UI_TEXT.editorPlaceholderInput;
+	const inputColor = hasText ? "text" : "muted";
+	lines.push(
+		truncateToWidth(
+			`${pointer}${theme.fg(optionColor, label)}${renderInputLine(
+				inputText,
+				availableWidth,
+				theme,
+				inputColor,
+			)}`,
+			width,
+		),
+	);
 }
 
 function getOptionColor(isAnsweredOption: boolean, selected: boolean) {

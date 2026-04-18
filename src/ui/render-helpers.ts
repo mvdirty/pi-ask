@@ -34,11 +34,12 @@ export function renderInputLine(
 	line: string,
 	availableWidth: number,
 	theme: Theme,
+	color: ThemeColor = "text",
 ): string {
 	const innerWidth = Math.max(4, availableWidth - 2);
 	const truncated = truncateToWidth(line, innerWidth);
 	const padding = " ".repeat(Math.max(0, innerWidth - visibleWidth(truncated)));
-	return theme.bg("toolPendingBg", ` ${truncated}${padding} `);
+	return theme.bg("selectedBg", ` ${theme.fg(color, truncated)}${padding} `);
 }
 
 export function renderEditorBlock(args: {
@@ -48,23 +49,53 @@ export function renderEditorBlock(args: {
 	theme: Theme;
 	indent: string;
 	availableWidth: number;
-	hint: string;
+	placeholder?: string;
+	placeholderColor?: ThemeColor;
+	contentColor?: ThemeColor;
+	isEmpty?: boolean;
 }) {
-	const { lines, editorLines, width, theme, indent, availableWidth, hint } =
-		args;
-	for (const editorLine of editorLines) {
+	const {
+		lines,
+		editorLines,
+		width,
+		theme,
+		indent,
+		availableWidth,
+		placeholder,
+		placeholderColor = "muted",
+		contentColor = "text",
+		isEmpty = false,
+	} = args;
+	const innerLines = editorLines.length >= 2 ? editorLines.slice(1, -1) : editorLines;
+
+	if (isEmpty && placeholder) {
 		lines.push(
 			truncateToWidth(
-				`${indent}${renderInputLine(editorLine, availableWidth, theme)}`,
+				`${indent}${renderInputLine(
+					placeholder,
+					availableWidth,
+					theme,
+					placeholderColor,
+				)}`,
+				width,
+			),
+		);
+		return;
+	}
+
+	for (const editorLine of innerLines) {
+		lines.push(
+			truncateToWidth(
+				`${indent}${renderInputLine(
+					editorLine,
+					availableWidth,
+					theme,
+					contentColor,
+				)}`,
 				width,
 			),
 		);
 	}
-	lines.push(truncateToWidth(`${indent}${theme.fg("dim", hint)}`, width));
-}
-
-export function renderHint(template: string, newLineHint: string): string {
-	return template.replace("{newLineHint}", newLineHint);
 }
 
 export function renderBox(

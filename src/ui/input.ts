@@ -11,6 +11,7 @@ export type AskInputCommand =
 	| { kind: "cancel" }
 	| { kind: "numberShortcut"; digit: number }
 	| { kind: "editMoveTab"; delta: 1 | -1 }
+	| { kind: "editMoveOption"; delta: 1 | -1 }
 	| { kind: "editClose" }
 	| { kind: "delegateToEditor" }
 	| { kind: "ignore" };
@@ -44,6 +45,12 @@ function getEditingInputCommand(data: string): AskInputCommand {
 	}
 	if (matchesKey(data, Key.shift("tab")) || matchesKey(data, Key.left)) {
 		return { kind: "editMoveTab", delta: -1 };
+	}
+	if (matchesKey(data, Key.up)) {
+		return { kind: "editMoveOption", delta: -1 };
+	}
+	if (matchesKey(data, Key.down)) {
+		return { kind: "editMoveOption", delta: 1 };
 	}
 	if (matchesKey(data, Key.escape)) {
 		return { kind: "editClose" };

@@ -25,7 +25,7 @@ import {
 } from "../state.ts";
 import type { AskParams, AskResult, AskState } from "../types.ts";
 import type { AskInputCommand } from "./input.ts";
-import { formatKeybindingLabel, getInputCommand } from "./input.ts";
+import { getInputCommand } from "./input.ts";
 import { renderAskScreen } from "./render.ts";
 
 type CustomCallback = Parameters<ExtensionContext["ui"]["custom"]>[0];
@@ -41,7 +41,6 @@ interface AskFlowController {
 	state: AskState;
 	cachedLines: string[] | undefined;
 	suppressAutoInputForSelection: boolean;
-	newLineHint: string;
 	tui: Tui;
 	theme: Theme;
 	editor: Editor;
@@ -58,7 +57,7 @@ export async function runAskFlow(
 }
 
 function createAskFlowController(
-	[tui, theme, keybindings, done]: [
+	[tui, theme, _keybindings, done]: [
 		Tui,
 		Theme,
 		Keybindings,
@@ -70,9 +69,6 @@ function createAskFlowController(
 		state: createInitialState(params),
 		cachedLines: undefined,
 		suppressAutoInputForSelection: false,
-		newLineHint: formatKeybindingLabel(
-			keybindings.getKeys("tui.input.newLine")[0] ?? "shift+enter",
-		),
 		tui,
 		theme,
 		editor: createEditor(tui, theme),
@@ -103,7 +99,6 @@ function renderController(
 			theme: controller.theme,
 			width,
 			editor: controller.editor,
-			newLineHint: controller.newLineHint,
 		});
 	}
 	return controller.cachedLines;
@@ -125,6 +120,12 @@ function handleEditingCommand(
 ) {
 	if (command.kind === "editMoveTab") {
 		controller.state = saveEditorAndMoveTab(controller, command.delta);
+		syncInputModeWithSelection(controller);
+		refresh(controller);
+		return;
+	}
+	if (command.kind === "editMoveOption") {
+		controller.state = saveEditorAndMoveOption(controller, command.delta);
 		syncInputModeWithSelection(controller);
 		refresh(controller);
 		return;
@@ -154,7 +155,7 @@ function handleNavigationCommand(
 			navigateOptions(controller, command.delta);
 			return;
 		case "toggleMulti":
-			handleToggleMulti(controller);
+			handleToggleCurrentOption(controller);
 			return;
 		case "openQuestionNote":
 			openQuestionNote(controller);
@@ -178,6 +179,7 @@ function handleNavigationCommand(
 			return;
 		case "ignore":
 		case "editMoveTab":
+		case "editMoveOption":
 		case "editClose":
 		case "delegateToEditor":
 			return;
@@ -200,9 +202,9 @@ function navigateOptions(controller: AskFlowController, delta: 1 | -1) {
 	refresh(controller);
 }
 
-function handleToggleMulti(controller: AskFlowController) {
+function handleToggleCurrentOption(controller: AskFlowController) {
 	const question = getCurrentQuestion(controller.state);
-	if (question?.type !== "multi") {
+	if (!question) {
 		return;
 	}
 	controller.suppressAutoInputForSelection = false;
@@ -317,6 +319,15 @@ function saveEditorAndMoveTab(
 	const nextState = saveEditorWithoutAdvancing(controller);
 	controller.suppressAutoInputForSelection = false;
 	return moveTab(nextState, delta);
+}
+
+function saveEditorAndMoveOption(
+	controller: AskFlowController,
+	delta: 1 | -1,
+): AskState {
+	const nextState = saveEditorWithoutAdvancing(controller);
+	controller.suppressAutoInputForSelection = false;
+	return moveOption(nextState, delta);
 }
 
 function createEditor(tui: Tui, theme: Theme) {

@@ -14,9 +14,8 @@ export function renderAskScreen(args: {
 	theme: Theme;
 	width: number;
 	editor: QuestionRenderContext["editor"];
-	newLineHint: string;
 }): string[] {
-	const { state, theme, width, editor, newLineHint } = args;
+	const { state, theme, width, editor } = args;
 	const lines: string[] = [];
 	const question = getCurrentQuestion(state);
 	const options = getRenderableOptions(question);
@@ -34,7 +33,6 @@ export function renderAskScreen(args: {
 			theme,
 			width,
 			editor,
-			newLineHint,
 		});
 	}
 

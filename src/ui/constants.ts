@@ -23,6 +23,6 @@ export const UI_TEXT = {
 		" ⇆ tab · ↑↓ select · Space toggle · Enter continue · N option note · Ctrl+N question note · Esc dismiss · 1-9 quick toggle",
 	footerDefault:
 		" ⇆ tab · ↑↓ select · Enter confirm · N option note · Ctrl+N question note · Esc dismiss",
-	hintSave: "{newLineHint} newline · Enter save · Esc save and close",
-	hintSubmit: "{newLineHint} newline · Enter submit · Esc save and close",
+	editorPlaceholderInput: "Type your answer...",
+	editorPlaceholderNote: "Add a note...",
 } as const;

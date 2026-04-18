@@ -17,7 +17,6 @@ export interface QuestionRenderContext {
 	theme: Theme;
 	width: number;
 	editor: Editor;
-	newLineHint: string;
 }
 
 export interface OptionDetailRenderContext {
@@ -29,7 +28,6 @@ export interface OptionDetailRenderContext {
 	theme: Theme;
 	width: number;
 	editor: Editor;
-	newLineHint: string;
 	selected?: boolean;
 	withGap?: boolean;
 }

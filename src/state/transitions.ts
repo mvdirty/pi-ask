@@ -114,9 +114,9 @@ export function enterOptionNoteMode(
 	});
 }
 
-export function toggleCurrentMultiOption(state: AskState): AskState {
+export function toggleCurrentOption(state: AskState): AskState {
 	const question = getCurrentQuestion(state);
-	if (!question || question.type === "single") {
+	if (!question) {
 		return state;
 	}
 
@@ -128,9 +128,28 @@ export function toggleCurrentMultiOption(state: AskState): AskState {
 		return setView(state, inputView(question.id));
 	}
 
-	return updateAnswer(state, question.id, (answer) =>
-		toggleSelection(answer, option, state.activeOptionIndex),
-	);
+	if (question.type === "multi") {
+		return updateAnswer(state, question.id, (answer) =>
+			toggleSelection(answer, option, state.activeOptionIndex),
+		);
+	}
+
+	return updateAnswer(state, question.id, (answer) => {
+		const isSelected = answer.selected.some(
+			(selection) => selection.value === option.value,
+		);
+		if (isSelected) {
+			return {
+				...answer,
+				selected: [],
+			};
+		}
+		return setSingleSelection(answer, option, state.activeOptionIndex);
+	});
+}
+
+export function toggleCurrentMultiOption(state: AskState): AskState {
+	return toggleCurrentOption(state);
 }
 
 export function confirmCurrentSelection(state: AskState): AskState {
