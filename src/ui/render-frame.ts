@@ -3,7 +3,7 @@ import {
 	getCurrentQuestion,
 	isQuestionAnswered,
 	isSubmitTab,
-} from "../state.ts";
+} from "../state/selectors.ts";
 import type { AskState } from "../types.ts";
 import { renderFooterText } from "./render-helpers.ts";
 import type { Theme } from "./render-types.ts";
@@ -53,7 +53,7 @@ function renderTabs(state: AskState, theme: Theme, width: number): string {
 		segments.push(
 			active
 				? theme.bg("selectedBg", theme.fg("text", text))
-				: theme.fg(answered ? "success" : "muted", text),
+				: theme.fg(answered ? "success" : "muted", text)
 		);
 	}
 
@@ -61,7 +61,7 @@ function renderTabs(state: AskState, theme: Theme, width: number): string {
 	segments.push(
 		isSubmitTab(state)
 			? theme.bg("selectedBg", theme.fg("text", submitText))
-			: theme.fg("success", submitText),
+			: theme.fg("success", submitText)
 	);
 	segments.push(theme.fg("dim", " →"));
 	return truncateToWidth(` ${segments.join(" ")}`, width);
@@ -80,6 +80,6 @@ function renderFooter(state: AskState, theme: Theme): string {
 	const question = getCurrentQuestion(state);
 	return theme.fg(
 		"dim",
-		renderFooterText(question?.type === "multi" ? "multi" : "default"),
+		renderFooterText(question?.type === "multi" ? "multi" : "default")
 	);
 }

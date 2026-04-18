@@ -1,13 +1,13 @@
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+import { isOptionSelected } from "../state/answers.ts";
 import {
 	getAnswer,
 	getOptionNote,
 	getQuestionNote,
 	isInputOpenForQuestion,
 	isOptionNoteOpen,
-	isOptionSelected,
 	isQuestionNoteOpen,
-} from "../state.ts";
+} from "../state/selectors.ts";
 import type { AskDisplayOption } from "../types.ts";
 import { UI_DIMENSIONS, UI_TEXT } from "./constants.ts";
 import {
@@ -48,15 +48,15 @@ function renderQuestionNote(context: QuestionRenderContext) {
 			theme,
 			"accent",
 			" ",
-			" ",
+			" "
 		);
 		renderEditorBlock({
 			lines,
 			editorLines: editor.render(
 				Math.max(
 					UI_DIMENSIONS.editorMinWidth,
-					width - UI_DIMENSIONS.editorContentPadding,
-				),
+					width - UI_DIMENSIONS.editorContentPadding
+				)
 			),
 			width,
 			theme,
@@ -80,7 +80,7 @@ function renderQuestionNote(context: QuestionRenderContext) {
 		theme,
 		"muted",
 		" ",
-		"   ",
+		"   "
 	);
 	lines.push("");
 }
@@ -95,7 +95,7 @@ function renderStandardQuestion(context: QuestionRenderContext) {
 function renderStandardOption(
 	context: QuestionRenderContext,
 	option: AskDisplayOption,
-	index: number,
+	index: number
 ) {
 	const { lines, state, question, theme, width } = context;
 	const answer = getAnswer(state, question.id);
@@ -106,7 +106,11 @@ function renderStandardOption(
 	const pointer = selected ? "❯ " : "  ";
 	const prefix = getOptionPrefix(question.type, option, isAnsweredOption);
 	const optionColor = getOptionColor(isAnsweredOption, selected);
-	if (option.isCustomOption && selected && isInputOpenForQuestion(state, question.id)) {
+	if (
+		option.isCustomOption &&
+		selected &&
+		isInputOpenForQuestion(state, question.id)
+	) {
 		renderInteractiveCustomOption(context, index, pointer, prefix, optionColor);
 		return;
 	}
@@ -118,7 +122,7 @@ function renderStandardOption(
 		theme,
 		optionColor,
 		pointer,
-		" ".repeat(visibleWidth(pointer)),
+		" ".repeat(visibleWidth(pointer))
 	);
 	renderOptionMeta({
 		...context,
@@ -143,7 +147,7 @@ function renderPreviewQuestion(context: QuestionRenderContext) {
 			theme,
 			width,
 			answer,
-			selectedOption,
+			selectedOption
 		);
 	} else {
 		renderStackedPreviewLayout(
@@ -153,7 +157,7 @@ function renderPreviewQuestion(context: QuestionRenderContext) {
 			theme,
 			width,
 			answer,
-			selectedOption,
+			selectedOption
 		);
 	}
 
@@ -173,19 +177,19 @@ function renderWidePreviewLayout(
 	theme: Theme,
 	width: number,
 	answer: ReturnType<typeof getAnswer>,
-	selectedOption: AskDisplayOption | undefined,
+	selectedOption: AskDisplayOption | undefined
 ) {
 	const leftWidth = measurePreviewLeftWidth(options, width);
 	const rightWidth = Math.max(
 		UI_DIMENSIONS.previewMinRightWidth,
-		width - leftWidth - 2,
+		width - leftWidth - 2
 	);
 	const leftPane = renderPreviewOptionList(
 		state,
 		options,
 		theme,
 		leftWidth,
-		answer,
+		answer
 	);
 	const rightPane = renderPreviewPaneContent(selectedOption, theme, rightWidth);
 	for (const line of mergeColumns(leftPane, rightPane, leftWidth, width)) {
@@ -200,7 +204,7 @@ function renderStackedPreviewLayout(
 	theme: Theme,
 	width: number,
 	answer: ReturnType<typeof getAnswer>,
-	selectedOption: AskDisplayOption | undefined,
+	selectedOption: AskDisplayOption | undefined
 ) {
 	renderPreviewOptionList(state, options, theme, width, answer).forEach(add);
 	add("");
@@ -212,7 +216,7 @@ function renderPreviewOptionList(
 	options: QuestionRenderContext["options"],
 	theme: Theme,
 	width: number,
-	answer: ReturnType<typeof getAnswer>,
+	answer: ReturnType<typeof getAnswer>
 ): string[] {
 	const lines: string[] = [];
 	for (let index = 0; index < options.length; index++) {
@@ -228,7 +232,7 @@ function renderPreviewOptionList(
 			theme,
 			getOptionColor(isAnsweredOption, selected),
 			selected ? "❯ " : "  ",
-			"  ",
+			"  "
 		);
 		if (option.description) {
 			pushWrappedText(
@@ -238,7 +242,7 @@ function renderPreviewOptionList(
 				theme,
 				"muted",
 				"     ",
-				"     ",
+				"     "
 			);
 		}
 	}
@@ -251,7 +255,7 @@ function renderOptionMeta(
 		answer: ReturnType<typeof getAnswer>;
 		option: AskDisplayOption;
 		selected: boolean;
-	},
+	}
 ) {
 	const { lines, option, theme, width } = context;
 	if (option.description) {
@@ -262,7 +266,7 @@ function renderOptionMeta(
 			theme,
 			"muted",
 			"     ",
-			"     ",
+			"     "
 		);
 	}
 	renderOptionEditorOrNote(context);
@@ -312,7 +316,7 @@ function getOptionDetailRenderState(context: OptionDetailRenderContext) {
 }
 
 function hasOptionDetailContent(
-	renderState: ReturnType<typeof getOptionDetailRenderState>,
+	renderState: ReturnType<typeof getOptionDetailRenderState>
 ) {
 	return !!(
 		renderState.noteOpen ||
@@ -324,15 +328,27 @@ function hasOptionDetailContent(
 
 function renderOptionEditor(
 	context: OptionDetailRenderContext,
-	renderState: ReturnType<typeof getOptionDetailRenderState>,
+	renderState: ReturnType<typeof getOptionDetailRenderState>
 ): boolean {
 	const { lines, editor, width, theme } = context;
 	if (renderState.noteOpen) {
-		renderIndentedEditor(lines, editor, width, theme, UI_TEXT.editorPlaceholderNote);
+		renderIndentedEditor(
+			lines,
+			editor,
+			width,
+			theme,
+			UI_TEXT.editorPlaceholderNote
+		);
 		return true;
 	}
 	if (renderState.inputOpen) {
-		renderIndentedEditor(lines, editor, width, theme, UI_TEXT.editorPlaceholderInput);
+		renderIndentedEditor(
+			lines,
+			editor,
+			width,
+			theme,
+			UI_TEXT.editorPlaceholderInput
+		);
 		return true;
 	}
 	return false;
@@ -340,10 +356,10 @@ function renderOptionEditor(
 
 function renderOptionContent(
 	context: OptionDetailRenderContext,
-	renderState: ReturnType<typeof getOptionDetailRenderState>,
+	renderState: ReturnType<typeof getOptionDetailRenderState>
 ): boolean {
 	const { lines, option, theme, width } = context;
-	if (!option?.isCustomOption || !renderState.customText) {
+	if (!(option?.isCustomOption && renderState.customText)) {
 		return false;
 	}
 	pushWrappedText(
@@ -353,14 +369,14 @@ function renderOptionContent(
 		theme,
 		"muted",
 		"     ",
-		"     ",
+		"     "
 	);
 	return true;
 }
 
 function renderSavedOptionNote(
 	context: OptionDetailRenderContext,
-	optionNote: string | undefined,
+	optionNote: string | undefined
 ) {
 	if (!optionNote) {
 		return;
@@ -373,7 +389,7 @@ function renderSavedOptionNote(
 		theme,
 		"muted",
 		"     ",
-		"     ",
+		"     "
 	);
 }
 
@@ -382,15 +398,15 @@ function renderIndentedEditor(
 	editor: QuestionRenderContext["editor"],
 	width: number,
 	theme: Theme,
-	placeholder: string,
+	placeholder: string
 ) {
 	renderEditorBlock({
 		lines,
 		editorLines: editor.render(
 			Math.max(
 				UI_DIMENSIONS.editorMinWidth,
-				width - UI_DIMENSIONS.editorIndentedPadding,
-			),
+				width - UI_DIMENSIONS.editorIndentedPadding
+			)
 		),
 		width,
 		theme,
@@ -404,7 +420,7 @@ function renderIndentedEditor(
 function getOptionPrefix(
 	questionType: QuestionRenderContext["question"]["type"],
 	option: AskDisplayOption,
-	isAnsweredOption: boolean,
+	isAnsweredOption: boolean
 ): string {
 	if (questionType !== "multi" || option.isCustomOption) {
 		return "";
@@ -417,13 +433,13 @@ function renderInteractiveCustomOption(
 	index: number,
 	pointer: string,
 	prefix: string,
-	optionColor: ReturnType<typeof getOptionColor>,
+	optionColor: ReturnType<typeof getOptionColor>
 ) {
 	const { lines, editor, theme, width } = context;
 	const label = `${index + 1}. ${prefix}`;
 	const availableWidth = Math.max(
 		1,
-		width - visibleWidth(pointer) - visibleWidth(label),
+		width - visibleWidth(pointer) - visibleWidth(label)
 	);
 	const text = editor.getText().replace(/\n/g, " ");
 	const hasText = text.trim().length > 0;
@@ -435,10 +451,10 @@ function renderInteractiveCustomOption(
 				inputText,
 				availableWidth,
 				theme,
-				inputColor,
+				inputColor
 			)}`,
-			width,
-		),
+			width
+		)
 	);
 }
 

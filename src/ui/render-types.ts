@@ -4,30 +4,30 @@ import type {
 	getAnswer,
 	getCurrentQuestion,
 	getRenderableOptions,
-} from "../state.ts";
+} from "../state/selectors.ts";
 import type { AskDisplayOption, AskState } from "../types.ts";
 
 export type Theme = ExtensionContext["ui"]["theme"];
 
 export interface QuestionRenderContext {
+	editor: Editor;
 	lines: string[];
-	state: AskState;
-	question: NonNullable<ReturnType<typeof getCurrentQuestion>>;
 	options: ReturnType<typeof getRenderableOptions>;
+	question: NonNullable<ReturnType<typeof getCurrentQuestion>>;
+	state: AskState;
 	theme: Theme;
 	width: number;
-	editor: Editor;
 }
 
 export interface OptionDetailRenderContext {
-	lines: string[];
-	state: AskState;
-	questionId: string;
 	answer: ReturnType<typeof getAnswer>;
+	editor: Editor;
+	lines: string[];
 	option: AskDisplayOption | undefined;
+	questionId: string;
+	selected?: boolean;
+	state: AskState;
 	theme: Theme;
 	width: number;
-	editor: Editor;
-	selected?: boolean;
 	withGap?: boolean;
 }

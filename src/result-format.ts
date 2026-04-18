@@ -2,7 +2,7 @@ import type { AskResult } from "./types.ts";
 
 export function formatResultLines(
 	result: AskResult,
-	options: { mode: "summary" | "render" },
+	options: { mode: "summary" | "render" }
 ): string[] {
 	const lines: string[] = [];
 
@@ -20,7 +20,7 @@ export function formatResultLines(
 		const questionNoteLine = formatQuestionNoteLine(
 			question.label,
 			answer.note,
-			options.mode,
+			options.mode
 		);
 		if (questionNoteLine) {
 			lines.push(questionNoteLine);
@@ -35,11 +35,11 @@ export function formatResultLines(
 function formatAnswerLine(
 	questionLabel: string,
 	answer: AskResult["answers"][string],
-	mode: "summary" | "render",
+	mode: "summary" | "render"
 ): string | undefined {
 	const answerText = answer.customText ?? answer.labels.join(", ");
 	if (!answerText) {
-		return undefined;
+		return;
 	}
 	if (mode === "summary") {
 		return `${questionLabel}: ${answerText}`;
@@ -53,10 +53,10 @@ function formatAnswerLine(
 function formatQuestionNoteLine(
 	questionLabel: string,
 	note: string | undefined,
-	mode: "summary" | "render",
+	mode: "summary" | "render"
 ): string | undefined {
 	if (!note) {
-		return undefined;
+		return;
 	}
 	return mode === "summary"
 		? `${questionLabel} note: ${note}`
@@ -66,7 +66,7 @@ function formatQuestionNoteLine(
 function formatOptionNoteLines(
 	questionLabel: string,
 	answer: AskResult["answers"][string],
-	mode: "summary" | "render",
+	mode: "summary" | "render"
 ): string[] {
 	const lines: string[] = [];
 	for (let index = 0; index < answer.values.length; index++) {
@@ -79,7 +79,7 @@ function formatOptionNoteLines(
 		lines.push(
 			mode === "summary"
 				? `${questionLabel} / ${label} note: ${note}`
-				: `  ${label} note: ${note}`,
+				: `  ${label} note: ${note}`
 		);
 	}
 	return lines;

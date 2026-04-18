@@ -1,6 +1,8 @@
 import { Key, matchesKey } from "@mariozechner/pi-tui";
 import type { AskState } from "../types.ts";
 
+const DIGIT_PATTERN = /^[1-9]$/;
+
 export type AskInputCommand =
 	| { kind: "moveTab"; delta: 1 | -1 }
 	| { kind: "moveOption"; delta: 1 | -1 }
@@ -18,7 +20,7 @@ export type AskInputCommand =
 
 export function getInputCommand(
 	state: AskState,
-	data: string,
+	data: string
 ): AskInputCommand {
 	if (state.view.kind === "input" || state.view.kind === "note") {
 		return getEditingInputCommand(data);
@@ -102,5 +104,5 @@ function isQuestionNoteShortcut(data: string): boolean {
 }
 
 function parseDigit(data: string): number | null {
-	return /^[1-9]$/.test(data) ? Number(data) : null;
+	return DIGIT_PATTERN.test(data) ? Number(data) : null;
 }

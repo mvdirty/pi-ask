@@ -14,7 +14,7 @@ export function pushWrappedText(
 	theme: Theme,
 	color: ThemeColor,
 	prefix = "",
-	continuationPrefix = prefix,
+	continuationPrefix = prefix
 ) {
 	const availableWidth = Math.max(1, width - visibleWidth(prefix));
 	const wrapped = wrapText(text, availableWidth);
@@ -22,7 +22,7 @@ export function pushWrappedText(
 		const line = wrapped[index];
 		const currentPrefix = index === 0 ? prefix : continuationPrefix;
 		lines.push(
-			truncateToWidth(`${currentPrefix}${theme.fg(color, line)}`, width),
+			truncateToWidth(`${currentPrefix}${theme.fg(color, line)}`, width)
 		);
 	}
 	if (wrapped.length === 0) {
@@ -34,7 +34,7 @@ export function renderInputLine(
 	line: string,
 	availableWidth: number,
 	theme: Theme,
-	color: ThemeColor = "text",
+	color: ThemeColor = "text"
 ): string {
 	const innerWidth = Math.max(4, availableWidth - 2);
 	const truncated = truncateToWidth(line, innerWidth);
@@ -66,7 +66,8 @@ export function renderEditorBlock(args: {
 		contentColor = "text",
 		isEmpty = false,
 	} = args;
-	const innerLines = editorLines.length >= 2 ? editorLines.slice(1, -1) : editorLines;
+	const innerLines =
+		editorLines.length >= 2 ? editorLines.slice(1, -1) : editorLines;
 
 	if (isEmpty && placeholder) {
 		lines.push(
@@ -75,10 +76,10 @@ export function renderEditorBlock(args: {
 					placeholder,
 					availableWidth,
 					theme,
-					placeholderColor,
+					placeholderColor
 				)}`,
-				width,
-			),
+				width
+			)
 		);
 		return;
 	}
@@ -90,10 +91,10 @@ export function renderEditorBlock(args: {
 					editorLine,
 					availableWidth,
 					theme,
-					contentColor,
+					contentColor
 				)}`,
-				width,
-			),
+				width
+			)
 		);
 	}
 }
@@ -101,7 +102,7 @@ export function renderEditorBlock(args: {
 export function renderBox(
 	content: Array<{ text: string; color: ThemeColor }>,
 	width: number,
-	theme: Theme,
+	theme: Theme
 ): string[] {
 	const boxWidth = Math.max(UI_DIMENSIONS.boxMinWidth, width);
 	const innerWidth = Math.max(4, boxWidth - 2);
@@ -113,7 +114,7 @@ export function renderBox(
 			const line = theme.fg(item.color, rawLine);
 			const padding = " ".repeat(Math.max(0, innerWidth - visibleWidth(line)));
 			lines.push(
-				theme.fg("accent", "│") + line + padding + theme.fg("accent", "│"),
+				theme.fg("accent", "│") + line + padding + theme.fg("accent", "│")
 			);
 		}
 	}
@@ -126,7 +127,7 @@ export function renderPreviewPaneContent(
 		| { label: string; description?: string; preview?: string }
 		| undefined,
 	theme: Theme,
-	width: number,
+	width: number
 ): string[] {
 	if (!selectedOption) {
 		return renderBox([{ text: NO_PREVIEW_TEXT, color: "dim" }], width, theme);
@@ -140,7 +141,7 @@ export function renderPreviewPaneContent(
 	}
 	content.push({ text: "", color: "dim" });
 	for (const previewLine of (selectedOption.preview ?? NO_PREVIEW_TEXT).split(
-		"\n",
+		"\n"
 	)) {
 		content.push({
 			text: previewLine,
@@ -154,7 +155,7 @@ export function mergeColumns(
 	left: string[],
 	right: string[],
 	leftWidth: number,
-	width: number,
+	width: number
 ): string[] {
 	const lines: string[] = [];
 	const rowCount = Math.max(left.length, right.length);
@@ -169,7 +170,7 @@ export function mergeColumns(
 
 export function measurePreviewLeftWidth(
 	options: Array<{ label: string; description?: string }>,
-	width: number,
+	width: number
 ): number {
 	let widest = 0;
 	for (let index = 0; index < options.length; index++) {
@@ -177,24 +178,24 @@ export function measurePreviewLeftWidth(
 		widest = Math.max(
 			widest,
 			visibleWidth(`${index + 1}. ${option.label}`),
-			option.description ? visibleWidth(option.description) : 0,
+			option.description ? visibleWidth(option.description) : 0
 		);
 	}
 
 	const preferred = widest + 4;
 	const maxWidth = Math.min(
 		UI_DIMENSIONS.previewLeftMaxWidth,
-		Math.floor(width * UI_DIMENSIONS.previewLeftRatio),
+		Math.floor(width * UI_DIMENSIONS.previewLeftRatio)
 	);
 	return clamp(
 		preferred,
 		UI_DIMENSIONS.previewLeftMinWidth,
-		Math.max(UI_DIMENSIONS.previewLeftMinWidth, maxWidth),
+		Math.max(UI_DIMENSIONS.previewLeftMinWidth, maxWidth)
 	);
 }
 
 export function renderFooterText(
-	mode: "input" | "note" | "submit" | "multi" | "default",
+	mode: "input" | "note" | "submit" | "multi" | "default"
 ) {
 	switch (mode) {
 		case "input":

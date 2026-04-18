@@ -6,33 +6,30 @@ Guidance for agents working in this repository.
 
 This repo builds a **pi.dev extension** that adds an `ask` / interview-style user question flow.
 
-Primary deliverables in this repo:
+Primary deliverables:
 
-- research and comparison docs:
-  - `RESEARCH.md`
-  - `FINDINGS.md`
-  - `SPEC.md`
-- TypeScript extension implementation in `src/`
-- tests for core logic in `tests/`
+- `src/` — implementation
+- `tests/` — behavior coverage
+- `docs/` — contract and architecture
 
-## Key project goals
+## Project goals
 
-When making changes, optimize for:
+Optimize for:
 
-1. **pi-native extension design**
+1. **pi-native design**
    - prefer `pi.registerTool()`
-   - prefer `ctx.ui.custom()` for complex interactive flows
-   - keep result shapes compatible with normal pi tool results
+   - prefer `ctx.ui.custom()` for complex flows
+   - keep results compatible with normal pi tool results
 
 2. **testable architecture**
-   - keep state and decision logic in plain TypeScript modules
+   - keep state logic in plain TypeScript modules
    - keep pi/TUI wiring thin
-   - prefer testing state transitions and serialization over testing terminal rendering details
+   - prefer testing transitions and serialization over terminal rendering details
 
-3. **research alignment**
-   - keep implementation consistent with `SPEC.md`
-   - if behavior changes materially, update `README.md` and `SPEC.md`
-   - if new harness findings are added, update `RESEARCH.md` and/or `FINDINGS.md`
+3. **small docs, clear code**
+   - keep implementation consistent with `docs/contract.md`
+   - update docs when behavior changes materially
+   - keep docs focused on contracts and boundaries, not line-by-line explanations
 
 ## Tech stack
 
@@ -92,12 +89,12 @@ pi -e ./src/index.ts
 
 ### docs
 
-Keep docs practical and synced with the implementation.
+Keep docs short and synced with the implementation.
 
-- `README.md`: how to install, run, test, and use the tool
-- `SPEC.md`: intended design and UX contract
-- `RESEARCH.md`: harness comparison notes
-- `FINDINGS.md`: synthesized conclusions from source research
+- `README.md`: install, run, and use
+- `docs/README.md`: docs index
+- `docs/contract.md`: external behavior and UX guarantees
+- `docs/architecture.md`: module boundaries and invariants
 
 ## Coding expectations
 
@@ -118,13 +115,13 @@ Keep docs practical and synced with the implementation.
 
 ## When changing behavior
 
-If you change the ask flow in a meaningful way, update the relevant docs in the same change:
+Update the relevant docs in the same change:
 
-- user-facing usage changes -> `README.md`
-- architecture/contract changes -> `SPEC.md`
-- comparative harness findings -> `RESEARCH.md` / `FINDINGS.md`
+- usage changes -> `README.md`
+- contract or UX changes -> `docs/contract.md`
+- module boundary changes -> `docs/architecture.md`
 
-## Preferred workflow for agents
+## Preferred workflow
 
 1. read the relevant docs first
 2. inspect the existing implementation before refactoring

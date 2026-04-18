@@ -1,24 +1,16 @@
 # pi-ask
 
-This project explores a **pi extension** that brings an `ask` capability into the **pi.dev harness**.
+`pi-ask` is a **pi.dev extension** that adds an interactive `ask_user` clarification tool.
 
-## What this is
+It lets an agent pause, ask structured questions in a terminal UI, and continue with normalized answers instead of guessing.
 
-The goal is to add a tool or extension layer that lets pi users ask questions through a dedicated `ask` interface, while fitting naturally into the pi.dev agent workflow.
+## Project layout
 
-## Why
-
-Different agent harnesses expose question/answer style tools in different ways. This repository will collect research on those implementations and use that knowledge to design a pi extension for pi.dev.
-
-## Contents
-
-- `RESEARCH.md` — notes on how `ask` is implemented in different harnesses
-- `FINDINGS.md` — synthesized findings from source research
-- `SPEC.md` — implementation spec for a pi-native ask/interview tool
 - `src/` — TypeScript extension implementation
-- `tests/` — TypeScript tests for core logic/result formatting
+- `tests/` — behavior-focused tests
+- `docs/` — small docs set for contract and architecture
 
-## Usage
+## Getting started
 
 ### Requirements
 
@@ -35,7 +27,7 @@ Run pi with the extension entrypoint:
 pi -e ./src/index.ts
 ```
 
-This project is designed for dynamic loading via the `-e` flag.
+Load it dynamically with the `-e` flag.
 
 ### Install dependencies
 
@@ -87,10 +79,10 @@ Note: some Zed settings such as global extension auto-install and autosave are n
 
 ## Tool
 
-The extension registers a tool named `ask_user`.
+The extension registers one tool: `ask_user`.
 
 Use it when the agent needs structured clarification before proceeding.
-Use `type: "preview"` when the choice needs a dedicated preview pane (for example, code snippets, layouts, configuration examples, or other rich previews).
+Use `type: "preview"` when an option needs a dedicated preview pane.
 
 ### Input shape
 
@@ -163,9 +155,9 @@ Use `type: "preview"` when the choice needs a dedicated preview pane (for exampl
 }
 ```
 
-## Current UX
+## Features
 
-The current prototype supports:
+`ask_user` currently supports:
 
 - tabbed multi-question flow
 - single-select questions
@@ -187,6 +179,7 @@ The returned `details.answers[questionId]` object may include:
 {
   values: string[]
   labels: string[]
+  indices: number[]
   customText?: string
   note?: string // question-level note
   optionNotes?: Record<string, string> // selected options only
@@ -230,6 +223,16 @@ For example, ask about framework choice, styling approach, and testing strictnes
 Do not guess if those choices would change the implementation.
 ```
 
+## Documentation
+
+Docs stay intentionally small:
+
+- `docs/README.md` — index
+- `docs/contract.md` — external behavior
+- `docs/architecture.md` — module boundaries and invariants
+
+Implementation detail should stay in the code and tests.
+
 ## Status
 
-Prototype implemented in TypeScript and test-covered for core logic.
+Implemented in TypeScript with behavior-focused test coverage.

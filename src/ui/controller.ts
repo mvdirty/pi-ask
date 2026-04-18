@@ -1,28 +1,30 @@
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { Editor, type EditorTheme } from "@mariozechner/pi-tui";
+import { createInitialState } from "../state/create.ts";
+import { toAskResult } from "../state/result.ts";
 import {
-	applyNumberShortcut,
-	cancelFlow,
-	confirmCurrentSelection,
-	createInitialState,
-	enterInputMode,
-	enterOptionNoteMode,
-	enterQuestionNoteMode,
 	getAnswer,
 	getCurrentOption,
 	getCurrentQuestion,
 	getOptionNote,
 	getQuestionNote,
-	isEditingView,
 	isSubmitTab,
+} from "../state/selectors.ts";
+import {
+	applyNumberShortcut,
+	cancelFlow,
+	confirmCurrentSelection,
+	enterInputMode,
+	enterOptionNoteMode,
+	enterQuestionNoteMode,
 	moveOption,
 	moveTab,
 	saveCustomAnswer,
 	saveNote,
 	submitCustomAnswer,
-	toAskResult,
 	toggleCurrentMultiOption,
-} from "../state.ts";
+} from "../state/transitions.ts";
+import { isEditingView } from "../state/view.ts";
 import type { AskParams, AskResult, AskState } from "../types.ts";
 import type { AskInputCommand } from "./input.ts";
 import { getInputCommand } from "./input.ts";
@@ -38,21 +40,21 @@ type Keybindings = CustomCallbackArgs[2];
 type Done = (result: AskResult) => void;
 
 interface AskFlowController {
-	state: AskState;
 	cachedLines: string[] | undefined;
-	suppressAutoInputForSelection: boolean;
-	tui: Tui;
-	theme: Theme;
-	editor: Editor;
 	done: Done;
+	editor: Editor;
+	state: AskState;
+	suppressAutoInputForSelection: boolean;
+	theme: Theme;
+	tui: Tui;
 }
 
-export async function runAskFlow(
+export function runAskFlow(
 	ctx: ExtensionContext,
-	params: AskParams,
+	params: AskParams
 ): Promise<AskResult> {
 	return ctx.ui.custom<AskResult>((...args) =>
-		createAskFlowController(args, params),
+		createAskFlowController(args, params)
 	);
 }
 
@@ -63,16 +65,16 @@ function createAskFlowController(
 		Keybindings,
 		(result: AskResult) => void,
 	],
-	params: AskParams,
+	params: AskParams
 ) {
 	const controller: AskFlowController = {
-		state: createInitialState(params),
 		cachedLines: undefined,
-		suppressAutoInputForSelection: false,
-		tui,
-		theme,
-		editor: createEditor(tui, theme),
 		done,
+		editor: createEditor(tui, theme),
+		state: createInitialState(params),
+		suppressAutoInputForSelection: false,
+		theme,
+		tui,
 	};
 
 	controller.editor.onSubmit = (value) => submitEditor(controller, value);
@@ -91,14 +93,14 @@ function createAskFlowController(
 
 function renderController(
 	controller: AskFlowController,
-	width: number,
+	width: number
 ): string[] {
 	if (!controller.cachedLines) {
 		controller.cachedLines = renderAskScreen({
+			editor: controller.editor,
 			state: controller.state,
 			theme: controller.theme,
 			width,
-			editor: controller.editor,
 		});
 	}
 	return controller.cachedLines;
@@ -116,7 +118,7 @@ function handleControllerInput(controller: AskFlowController, data: string) {
 function handleEditingCommand(
 	controller: AskFlowController,
 	command: AskInputCommand,
-	data: string,
+	data: string
 ) {
 	if (command.kind === "editMoveTab") {
 		controller.state = saveEditorAndMoveTab(controller, command.delta);
@@ -145,7 +147,7 @@ function handleEditingCommand(
 
 function handleNavigationCommand(
 	controller: AskFlowController,
-	command: AskInputCommand,
+	command: AskInputCommand
 ) {
 	switch (command.kind) {
 		case "moveTab":
@@ -174,7 +176,7 @@ function handleNavigationCommand(
 		case "numberShortcut":
 			commitNavigation(
 				controller,
-				applyNumberShortcut(controller.state, command.digit),
+				applyNumberShortcut(controller.state, command.digit)
 			);
 			return;
 		case "ignore":
@@ -225,8 +227,7 @@ function openOptionNote(controller: AskFlowController) {
 	const question = getCurrentQuestion(controller.state);
 	const option = getCurrentOption(controller.state);
 	if (
-		!question ||
-		!option ||
+		!(question && option) ||
 		option.isCustomOption ||
 		isSubmitTab(controller.state)
 	) {
@@ -235,7 +236,7 @@ function openOptionNote(controller: AskFlowController) {
 	controller.state = enterOptionNoteMode(
 		controller.state,
 		question.id,
-		option.value,
+		option.value
 	);
 	hydrateEditorForCurrentView(controller);
 	refresh(controller);
@@ -292,7 +293,7 @@ function syncInputModeWithSelection(controller: AskFlowController) {
 
 	const question = getCurrentQuestion(controller.state);
 	const option = getCurrentOption(controller.state);
-	if (!question || !option?.isCustomOption) {
+	if (!(question && option?.isCustomOption)) {
 		return;
 	}
 
@@ -314,7 +315,7 @@ function saveEditorWithoutAdvancing(controller: AskFlowController): AskState {
 
 function saveEditorAndMoveTab(
 	controller: AskFlowController,
-	delta: 1 | -1,
+	delta: 1 | -1
 ): AskState {
 	const nextState = saveEditorWithoutAdvancing(controller);
 	controller.suppressAutoInputForSelection = false;
@@ -323,7 +324,7 @@ function saveEditorAndMoveTab(
 
 function saveEditorAndMoveOption(
 	controller: AskFlowController,
-	delta: 1 | -1,
+	delta: 1 | -1
 ): AskState {
 	const nextState = saveEditorWithoutAdvancing(controller);
 	controller.suppressAutoInputForSelection = false;
@@ -334,11 +335,11 @@ function createEditor(tui: Tui, theme: Theme) {
 	const editorTheme: EditorTheme = {
 		borderColor: (text) => theme.fg("accent", text),
 		selectList: {
+			description: (text) => theme.fg("muted", text),
+			noMatch: (text) => theme.fg("warning", text),
+			scrollInfo: (text) => theme.fg("dim", text),
 			selectedPrefix: (text) => theme.fg("accent", text),
 			selectedText: (text) => theme.fg("accent", text),
-			description: (text) => theme.fg("muted", text),
-			scrollInfo: (text) => theme.fg("dim", text),
-			noMatch: (text) => theme.fg("warning", text),
 		},
 	};
 	return new Editor(tui, editorTheme);

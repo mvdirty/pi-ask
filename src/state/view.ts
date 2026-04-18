@@ -18,7 +18,7 @@ export function questionNoteView(questionId: string): ViewState {
 
 export function optionNoteView(
 	questionId: string,
-	optionValue: string,
+	optionValue: string
 ): ViewState {
 	return { kind: "note", questionId, optionValue };
 }

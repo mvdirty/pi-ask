@@ -1,6 +1,6 @@
 import { truncateToWidth } from "@mariozechner/pi-tui";
 import { SUBMIT_CHOICES } from "../constants.ts";
-import { toAskResult } from "../state.ts";
+import { toAskResult } from "../state/result.ts";
 import type { AskResult, AskState } from "../types.ts";
 import { UI_TEXT } from "./constants.ts";
 import { pushWrappedText } from "./render-helpers.ts";
@@ -10,7 +10,7 @@ export function renderSubmitScreen(
 	lines: string[],
 	state: AskState,
 	theme: Theme,
-	width: number,
+	width: number
 ) {
 	pushWrappedText(lines, UI_TEXT.reviewTitle, width, theme, "accent", " ", " ");
 	lines.push("");
@@ -22,7 +22,7 @@ export function renderSubmitScreen(
 			question,
 			submittedAnswers[question.id],
 			theme,
-			width,
+			width
 		);
 	}
 
@@ -34,7 +34,7 @@ export function renderSubmitScreen(
 		theme,
 		"success",
 		" ",
-		" ",
+		" "
 	);
 	lines.push("");
 	renderSubmitActions(lines, state, theme, width);
@@ -45,12 +45,12 @@ function renderSubmittedQuestion(
 	question: AskState["questions"][number],
 	answer: AskResult["answers"][string] | undefined,
 	theme: Theme,
-	width: number,
+	width: number
 ) {
 	pushWrappedText(lines, question.prompt, width, theme, "muted", " ● ", "   ");
 	if (!answer) {
 		lines.push(
-			truncateToWidth(`   ${theme.fg("warning", UI_TEXT.unanswered)}`, width),
+			truncateToWidth(`   ${theme.fg("warning", UI_TEXT.unanswered)}`, width)
 		);
 		return;
 	}
@@ -62,7 +62,7 @@ function renderSubmittedAnswer(
 	lines: string[],
 	answer: AskResult["answers"][string],
 	theme: Theme,
-	width: number,
+	width: number
 ) {
 	const answerText = answer.customText ?? answer.labels.join(", ");
 	if (answerText) {
@@ -73,7 +73,7 @@ function renderSubmittedAnswer(
 			theme,
 			answer.customText ? "text" : "success",
 			"   ",
-			"     ",
+			"     "
 		);
 	}
 	if (answer.note) {
@@ -84,7 +84,7 @@ function renderSubmittedAnswer(
 			theme,
 			"muted",
 			"   ",
-			"     ",
+			"     "
 		);
 	}
 	for (let index = 0; index < answer.values.length; index++) {
@@ -101,7 +101,7 @@ function renderSubmittedAnswer(
 			theme,
 			"muted",
 			"   ",
-			"     ",
+			"     "
 		);
 	}
 }
@@ -110,7 +110,7 @@ function renderSubmitActions(
 	lines: string[],
 	state: AskState,
 	theme: Theme,
-	width: number,
+	width: number
 ) {
 	for (let index = 0; index < SUBMIT_CHOICES.length; index++) {
 		const selected = index === state.activeSubmitActionIndex;
@@ -122,7 +122,7 @@ function renderSubmitActions(
 			theme,
 			selected ? "accent" : "text",
 			prefix,
-			prefix,
+			prefix
 		);
 	}
 }

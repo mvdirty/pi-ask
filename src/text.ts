@@ -1,11 +1,14 @@
 import { visibleWidth } from "@mariozechner/pi-tui";
 
+const LEADING_WHITESPACE_PATTERN = /^\s*/;
+const WORD_SPLIT_PATTERN = /\s+/;
+
 export function wrapText(text: string, width: number): string[] {
 	const effectiveWidth = Math.max(1, width);
 	const lines = text
 		.split("\n")
 		.flatMap((paragraph) =>
-			wrapParagraphWithIndentation(paragraph, effectiveWidth),
+			wrapParagraphWithIndentation(paragraph, effectiveWidth)
 		);
 
 	return lines.length > 0 ? lines : [""];
@@ -13,13 +16,14 @@ export function wrapText(text: string, width: number): string[] {
 
 function wrapParagraphWithIndentation(
 	paragraph: string,
-	width: number,
+	width: number
 ): string[] {
 	if (paragraph.length === 0) {
 		return [""];
 	}
 
-	const leadingWhitespace = paragraph.match(/^\s*/)?.[0] ?? "";
+	const leadingWhitespace =
+		paragraph.match(LEADING_WHITESPACE_PATTERN)?.[0] ?? "";
 	const body = paragraph.slice(leadingWhitespace.length).trim();
 	if (!body) {
 		return [leadingWhitespace];
@@ -35,7 +39,7 @@ function wrapParagraphWithIndentation(
 
 function wrapParagraph(text: string, width: number): string[] {
 	const effectiveWidth = Math.max(1, width);
-	const words = text.split(/\s+/).filter(Boolean);
+	const words = text.split(WORD_SPLIT_PATTERN).filter(Boolean);
 	const lines: string[] = [];
 	let current = "";
 

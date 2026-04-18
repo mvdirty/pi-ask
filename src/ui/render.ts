@@ -2,7 +2,7 @@ import {
 	getCurrentQuestion,
 	getRenderableOptions,
 	isSubmitTab,
-} from "../state.ts";
+} from "../state/selectors.ts";
 import type { AskState } from "../types.ts";
 import { renderFrameFooter, renderFrameHeader } from "./render-frame.ts";
 import { renderQuestionScreen } from "./render-question.ts";

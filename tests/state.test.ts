@@ -1,21 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createInitialState } from "../src/state/create.ts";
+import { toAskResult } from "../src/state/result.ts";
+import { getRenderableOptions } from "../src/state/selectors.ts";
 import {
 	applyNumberShortcut,
 	cancelFlow,
 	confirmCurrentSelection,
-	createInitialState,
 	enterOptionNoteMode,
 	enterQuestionNoteMode,
-	getRenderableOptions,
 	moveOption,
 	moveTab,
 	saveCustomAnswer,
 	saveNote,
 	submitCustomAnswer,
-	toAskResult,
 	toggleCurrentMultiOption,
-} from "../src/state.ts";
+} from "../src/state/transitions.ts";
 import type { AskParams } from "../src/types.ts";
 
 function sampleParams(): AskParams {
@@ -61,11 +61,11 @@ test("normalize defaults via initial state", () => {
 	assert.equal(state.questions[0].required, true);
 	assert.equal(
 		getRenderableOptions(state.questions[0]).at(-1)?.label,
-		"Type your own",
+		"Type your own"
 	);
 	assert.equal(
 		getRenderableOptions(state.questions[0]).at(-1)?.isCustomOption,
-		true,
+		true
 	);
 });
 
@@ -86,7 +86,7 @@ test("preview questions keep their type and option previews", () => {
 	assert.equal(state.questions[0].options[0].preview, "Example");
 	assert.equal(
 		getRenderableOptions(state.questions[0]).at(-1)?.isCustomOption,
-		undefined,
+		undefined
 	);
 	assert.equal(getRenderableOptions(state.questions[0]).length, 1);
 });
@@ -106,14 +106,14 @@ test("multi-select space toggles current option and enter advances to submit", (
 	state = toggleCurrentMultiOption(state);
 	assert.deepEqual(
 		state.answers.fe.selected.map((selection) => selection.label),
-		["React"],
+		["React"]
 	);
 
 	state = moveOption(state, 1);
 	state = toggleCurrentMultiOption(state);
 	assert.deepEqual(
 		state.answers.fe.selected.map((selection) => selection.label),
-		["React", "Vue"],
+		["React", "Vue"]
 	);
 
 	state = confirmCurrentSelection(state);
@@ -254,13 +254,13 @@ test("option notes can exist before selection but only selected option notes are
 	state = toggleCurrentMultiOption(state);
 	assert.deepEqual(
 		state.answers.q1.selected.map((selection) => selection.value),
-		["react"],
+		["react"]
 	);
 	state = moveOption(state, 1);
 	state = toggleCurrentMultiOption(state);
 	assert.deepEqual(
 		state.answers.q1.selected.map((selection) => selection.value),
-		["react", "vue"],
+		["react", "vue"]
 	);
 	assert.deepEqual(toAskResult(state).answers.q1.optionNotes, {
 		vue: "maybe later",

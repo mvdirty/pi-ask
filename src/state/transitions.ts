@@ -58,7 +58,7 @@ export function reduceAskState(state: AskState, action: AskAction): AskState {
 		case "OPEN_OPTION_NOTE":
 			return setView(
 				state,
-				optionNoteView(action.questionId, action.optionValue),
+				optionNoteView(action.questionId, action.optionValue)
 			);
 		case "CONFIRM":
 			return confirmCurrentSelection(state);
@@ -97,7 +97,7 @@ export function enterInputMode(state: AskState, questionId: string): AskState {
 
 export function enterQuestionNoteMode(
 	state: AskState,
-	questionId: string,
+	questionId: string
 ): AskState {
 	return reduceAskState(state, { type: "OPEN_QUESTION_NOTE", questionId });
 }
@@ -105,7 +105,7 @@ export function enterQuestionNoteMode(
 export function enterOptionNoteMode(
 	state: AskState,
 	questionId: string,
-	optionValue: string,
+	optionValue: string
 ): AskState {
 	return reduceAskState(state, {
 		type: "OPEN_OPTION_NOTE",
@@ -130,13 +130,13 @@ export function toggleCurrentOption(state: AskState): AskState {
 
 	if (question.type === "multi") {
 		return updateAnswer(state, question.id, (answer) =>
-			toggleSelection(answer, option, state.activeOptionIndex),
+			toggleSelection(answer, option, state.activeOptionIndex)
 		);
 	}
 
 	return updateAnswer(state, question.id, (answer) => {
 		const isSelected = answer.selected.some(
-			(selection) => selection.value === option.value,
+			(selection) => selection.value === option.value
 		);
 		if (isSelected) {
 			return {
@@ -161,7 +161,7 @@ export function confirmCurrentSelection(state: AskState): AskState {
 
 	const question = getCurrentQuestion(state);
 	const option = getCurrentOption(state);
-	if (!question || !option) {
+	if (!(question && option)) {
 		return state;
 	}
 
@@ -177,7 +177,7 @@ export function confirmCurrentSelection(state: AskState): AskState {
 	}
 
 	const nextState = updateAnswer(state, question.id, (answer) =>
-		setSingleSelection(answer, option, state.activeOptionIndex),
+		setSingleSelection(answer, option, state.activeOptionIndex)
 	);
 	return advanceToNextTab(nextState);
 }
@@ -205,12 +205,12 @@ export function applyNumberShortcut(state: AskState, digit: number): AskState {
 
 	if (question.type === "multi") {
 		return updateAnswer(selectedState, question.id, (answer) =>
-			toggleSelection(answer, option, index),
+			toggleSelection(answer, option, index)
 		);
 	}
 
 	const nextState = updateAnswer(selectedState, question.id, (answer) =>
-		setSingleSelection(answer, option, index),
+		setSingleSelection(answer, option, index)
 	);
 	return advanceToNextTab(nextState);
 }
@@ -221,7 +221,7 @@ export function saveCustomAnswer(state: AskState, rawValue: string): AskState {
 
 export function submitCustomAnswer(
 	state: AskState,
-	rawValue: string,
+	rawValue: string
 ): AskState {
 	return saveInputValue(state, rawValue, true);
 }
@@ -244,7 +244,7 @@ export function cancelFlow(state: AskState): AskState {
 function saveInputValue(
 	state: AskState,
 	rawValue: string,
-	submit: boolean,
+	submit: boolean
 ): AskState {
 	if (state.view.kind !== "input") {
 		return state;
@@ -258,9 +258,9 @@ function saveInputValue(
 	const nextState = updateAnswer(
 		exitEditingView(state),
 		question.id,
-		(answer) => saveCustomText(answer, rawValue),
+		(answer) => saveCustomText(answer, rawValue)
 	);
-	if (!submit || !isAnswerAnswered(nextState.answers[question.id])) {
+	if (!(submit && isAnswerAnswered(nextState.answers[question.id]))) {
 		return nextState;
 	}
 	return advanceToNextTab(nextState);
@@ -278,7 +278,7 @@ function saveNoteValue(state: AskState, rawValue: string): AskState {
 		(answer) =>
 			optionValue
 				? saveOptionNote(answer, optionValue, rawValue)
-				: saveQuestionNote(answer, rawValue),
+				: saveQuestionNote(answer, rawValue)
 	);
 	return nextState;
 }
@@ -303,7 +303,7 @@ function moveOptionBy(state: AskState, delta: 1 | -1): AskState {
 			activeSubmitActionIndex: clamp(
 				state.activeSubmitActionIndex + delta,
 				0,
-				SUBMIT_ACTION_COUNT - 1,
+				SUBMIT_ACTION_COUNT - 1
 			),
 		};
 	}
@@ -314,7 +314,7 @@ function moveOptionBy(state: AskState, delta: 1 | -1): AskState {
 		activeOptionIndex: clamp(
 			state.activeOptionIndex + delta,
 			0,
-			Math.max(0, options.length - 1),
+			Math.max(0, options.length - 1)
 		),
 	};
 }
@@ -348,8 +348,8 @@ function updateAnswer(
 	state: AskState,
 	questionId: string,
 	mutate: (
-		answer: ReturnType<typeof emptyAnswer>,
-	) => ReturnType<typeof emptyAnswer>,
+		answer: ReturnType<typeof emptyAnswer>
+	) => ReturnType<typeof emptyAnswer>
 ): AskState {
 	const existing = getAnswer(state, questionId) ?? emptyAnswer();
 	const nextAnswer = mutate(existing);

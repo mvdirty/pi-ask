@@ -1,57 +1,57 @@
 export type AskQuestionType = "single" | "multi" | "preview";
 
 export interface AskOption {
-	value: string;
-	label: string;
 	description?: string;
+	label: string;
 	preview?: string;
+	value: string;
 }
 
 export interface AskQuestionInput {
 	id: string;
 	label?: string;
-	prompt: string;
-	type?: AskQuestionType;
-	required?: boolean;
 	options: AskOption[];
+	prompt: string;
+	required?: boolean;
+	type?: AskQuestionType;
 }
 
 export interface AskParams {
-	title?: string;
 	questions: AskQuestionInput[];
+	title?: string;
 }
 
 export interface AskQuestion
 	extends Omit<AskQuestionInput, "type" | "required" | "label"> {
 	label: string;
-	type: AskQuestionType;
 	required: boolean;
+	type: AskQuestionType;
 }
 
 export interface AskSelectedOption {
-	value: string;
-	label: string;
 	index: number;
+	label: string;
+	value: string;
 }
 
 export interface AskStateAnswer {
-	selected: AskSelectedOption[];
 	customText?: string;
 	note?: string;
 	optionNotes?: Record<string, string>;
+	selected: AskSelectedOption[];
 }
 
 export interface AskResultAnswer {
-	values: string[];
-	labels: string[];
-	indices: number[];
 	customText?: string;
+	indices: number[];
+	labels: string[];
 	note?: string;
 	optionNotes?: Record<string, string>;
+	values: string[];
 }
 
 export interface AskResult {
-	title?: string;
+	answers: Record<string, AskResultAnswer>;
 	cancelled: boolean;
 	questions: Array<{
 		id: string;
@@ -59,7 +59,7 @@ export interface AskResult {
 		prompt: string;
 		type: AskQuestionType;
 	}>;
-	answers: Record<string, AskResultAnswer>;
+	title?: string;
 }
 
 export type ViewState =
@@ -69,15 +69,15 @@ export type ViewState =
 	| { kind: "note"; questionId: string; optionValue?: string };
 
 export interface AskState {
-	title?: string;
-	questions: AskQuestion[];
-	activeTabIndex: number;
 	activeOptionIndex: number;
 	activeSubmitActionIndex: number;
-	view: ViewState;
+	activeTabIndex: number;
 	answers: Record<string, AskStateAnswer>;
-	completed: boolean;
 	cancelled: boolean;
+	completed: boolean;
+	questions: AskQuestion[];
+	title?: string;
+	view: ViewState;
 }
 
 export interface AskDisplayOption extends AskOption {

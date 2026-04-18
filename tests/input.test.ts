@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { applyNumberShortcut, createInitialState, enterQuestionNoteMode } from "../src/state.ts";
+import { createInitialState } from "../src/state/create.ts";
+import {
+	applyNumberShortcut,
+	enterQuestionNoteMode,
+} from "../src/state/transitions.ts";
 import { getInputCommand } from "../src/ui/input.ts";
 
 function inputState() {
@@ -30,15 +34,18 @@ test("editing views let up and down move navigation", () => {
 });
 
 test("note editing views let up and down move navigation", () => {
-	const state = enterQuestionNoteMode(createInitialState({
-		questions: [
-			{
-				id: "q1",
-				prompt: "Question?",
-				options: [{ value: "a", label: "A" }],
-			},
-		],
-	}), "q1");
+	const state = enterQuestionNoteMode(
+		createInitialState({
+			questions: [
+				{
+					id: "q1",
+					prompt: "Question?",
+					options: [{ value: "a", label: "A" }],
+				},
+			],
+		}),
+		"q1"
+	);
 
 	assert.deepEqual(getInputCommand(state, "\x1b[A"), {
 		kind: "editMoveOption",

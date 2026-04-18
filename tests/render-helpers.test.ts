@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderEditorBlock } from "../src/ui/render-helpers.ts";
 
+const ABC_PATTERN = /abc/;
+const BORDER_PATTERN = /┌|└/;
+const TYPE_YOUR_PATTERN = /Type your/;
+
 function mockTheme() {
 	return {
 		fg(color: string, text: string) {
@@ -25,8 +29,8 @@ test("renderEditorBlock strips editor borders", () => {
 	});
 
 	assert.equal(lines.length, 1);
-	assert.match(lines[0], /abc/);
-	assert.doesNotMatch(lines[0], /┌|└/);
+	assert.match(lines[0], ABC_PATTERN);
+	assert.doesNotMatch(lines[0], BORDER_PATTERN);
 });
 
 test("renderEditorBlock shows a muted placeholder when empty", () => {
@@ -43,6 +47,6 @@ test("renderEditorBlock shows a muted placeholder when empty", () => {
 	});
 
 	assert.equal(lines.length, 1);
-	assert.match(lines[0], /Type your/);
-	assert.doesNotMatch(lines[0], /┌|└/);
+	assert.match(lines[0], TYPE_YOUR_PATTERN);
+	assert.doesNotMatch(lines[0], BORDER_PATTERN);
 });

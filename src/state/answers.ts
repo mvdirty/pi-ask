@@ -32,12 +32,12 @@ export function cloneResultAnswer(answer: AskResultAnswer): AskResultAnswer {
 export function toggleSelection(
 	answer: AskStateAnswer,
 	option: AskDisplayOption,
-	index: number,
+	index: number
 ): AskStateAnswer {
 	const next = cloneAnswer(answer);
-	delete next.customText;
+	next.customText = undefined;
 	const selectedIndex = next.selected.findIndex(
-		(selection) => selection.value === option.value,
+		(selection) => selection.value === option.value
 	);
 
 	if (selectedIndex >= 0) {
@@ -56,7 +56,7 @@ export function toggleSelection(
 export function setSingleSelection(
 	answer: AskStateAnswer,
 	option: AskDisplayOption,
-	index: number,
+	index: number
 ): AskStateAnswer {
 	return {
 		...emptyAnswer(),
@@ -74,13 +74,13 @@ export function setSingleSelection(
 
 export function saveCustomText(
 	answer: AskStateAnswer,
-	rawValue: string,
+	rawValue: string
 ): AskStateAnswer {
 	const trimmed = rawValue.trim();
 	const next = cloneAnswer(answer);
 	next.selected = [];
 	if (!trimmed) {
-		delete next.customText;
+		next.customText = undefined;
 		return next;
 	}
 	next.customText = rawValue;
@@ -89,21 +89,21 @@ export function saveCustomText(
 
 export function saveQuestionNote(
 	answer: AskStateAnswer,
-	rawValue: string,
+	rawValue: string
 ): AskStateAnswer {
 	const next = cloneAnswer(answer);
 	if (rawValue.trim()) {
 		next.note = rawValue;
 		return next;
 	}
-	delete next.note;
+	next.note = undefined;
 	return next;
 }
 
 export function saveOptionNote(
 	answer: AskStateAnswer,
 	optionValue: string,
-	rawValue: string,
+	rawValue: string
 ): AskStateAnswer {
 	const next = cloneAnswer(answer);
 	const optionNotes = { ...(next.optionNotes ?? {}) };
@@ -135,10 +135,10 @@ export function isAnswerAnswered(answer?: AskStateAnswer): boolean {
 
 export function isOptionSelected(
 	answer: AskStateAnswer | undefined,
-	optionValue: string,
+	optionValue: string
 ): boolean {
 	return !!answer?.selected.some(
-		(selection) => selection.value === optionValue,
+		(selection) => selection.value === optionValue
 	);
 }
 
@@ -157,7 +157,7 @@ export function serializeAnswer(answer: AskStateAnswer): AskResultAnswer {
 						selection.value,
 						answer.optionNotes?.[selection.value],
 					])
-					.filter((entry): entry is [string, string] => !!entry[1]),
+					.filter((entry): entry is [string, string] => !!entry[1])
 			)
 		: undefined;
 

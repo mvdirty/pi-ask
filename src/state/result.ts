@@ -7,10 +7,9 @@ export function toAskResult(state: AskState): AskResult {
 	const answers = Object.fromEntries(
 		Object.entries(state.answers)
 			.map(
-				([questionId, answer]) =>
-					[questionId, serializeAnswer(answer)] as const,
+				([questionId, answer]) => [questionId, serializeAnswer(answer)] as const
 			)
-			.filter(([, answer]) => !isSerializedAnswerEmpty(answer)),
+			.filter(([, answer]) => !isSerializedAnswerEmpty(answer))
 	);
 
 	return {
@@ -41,7 +40,7 @@ export function hasAnswerContent(state: AskState, questionId: string): boolean {
 }
 
 function isSerializedAnswerEmpty(
-	answer: AskResult["answers"][string],
+	answer: AskResult["answers"][string]
 ): boolean {
 	return (
 		answer.values.length === 0 &&

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { applyNumberShortcut, createInitialState } from "../src/state.ts";
+import { createInitialState } from "../src/state/create.ts";
 import { getRenderableOptions } from "../src/state/selectors.ts";
+import { applyNumberShortcut } from "../src/state/transitions.ts";
 import { renderQuestionScreen } from "../src/ui/render-question.ts";
 
 function mockTheme() {
@@ -42,13 +43,13 @@ test("custom option stays labeled before selection", () => {
 
 	const lines: string[] = [];
 	renderQuestionScreen({
+		editor: mockEditor(),
 		lines,
-		state,
-		question: state.questions[0],
 		options: getRenderableOptions(state.questions[0]),
+		question: state.questions[0],
+		state,
 		theme: mockTheme(),
 		width: 80,
-		editor: mockEditor(),
 	});
 
 	assert(lines.some((line) => line.includes("Type your own")));
@@ -69,13 +70,13 @@ test("selected custom option becomes inline input", () => {
 
 	const lines: string[] = [];
 	renderQuestionScreen({
+		editor: mockEditor(""),
 		lines,
-		state,
-		question: state.questions[0],
 		options: getRenderableOptions(state.questions[0]),
+		question: state.questions[0],
+		state,
 		theme: mockTheme(),
 		width: 80,
-		editor: mockEditor(""),
 	});
 
 	assert(lines.some((line) => line.includes("Type your answer...")));

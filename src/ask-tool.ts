@@ -1,11 +1,12 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Text, truncateToWidth } from "@mariozechner/pi-tui";
-import { runAskFlow } from "./ask-component.ts";
 import { renderResultText } from "./result.ts";
 import { AskParamsSchema } from "./schema.ts";
-import { createInitialState, summarizeResult, toAskResult } from "./state.ts";
+import { createInitialState } from "./state/create.ts";
+import { summarizeResult, toAskResult } from "./state/result.ts";
 import type { AskParams, AskQuestionInput, AskResult } from "./types.ts";
 import { UI_DIMENSIONS } from "./ui/constants.ts";
+import { runAskFlow } from "./ui/controller.ts";
 
 export function registerAskTool(pi: ExtensionAPI) {
 	pi.registerTool({
@@ -57,7 +58,7 @@ export function registerAskTool(pi: ExtensionAPI) {
 				? params.questions
 						.map(
 							(question: AskQuestionInput, index) =>
-								question.label || `Q${index + 1}`,
+								question.label || `Q${index + 1}`
 						)
 						.join(", ")
 				: "";
@@ -66,7 +67,7 @@ export function registerAskTool(pi: ExtensionAPI) {
 			if (labels) {
 				text += theme.fg(
 					"dim",
-					` (${truncateToWidth(labels, UI_DIMENSIONS.callLabelTruncateWidth)})`,
+					` (${truncateToWidth(labels, UI_DIMENSIONS.callLabelTruncateWidth)})`
 				);
 			}
 			return new Text(text, 0, 0);

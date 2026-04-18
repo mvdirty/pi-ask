@@ -1,16 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderResultText } from "../src/result.ts";
+import { createInitialState } from "../src/state/create.ts";
+import { summarizeResult, toAskResult } from "../src/state/result.ts";
 import {
 	applyNumberShortcut,
-	createInitialState,
 	enterOptionNoteMode,
 	enterQuestionNoteMode,
 	saveNote,
 	submitCustomAnswer,
-	summarizeResult,
-	toAskResult,
-} from "../src/state.ts";
+} from "../src/state/transitions.ts";
 
 test("summarizeResult formats selected answers", () => {
 	let state = createInitialState({
@@ -53,7 +52,7 @@ test("summaries include custom text answers", () => {
 	assert.equal(summarizeResult(result), "Notes: Please include examples");
 	assert.equal(
 		renderResultText(result),
-		"✓ Notes: (wrote) Please include examples",
+		"✓ Notes: (wrote) Please include examples"
 	);
 });
 
@@ -85,7 +84,7 @@ test("summaries and result text include question and selected option notes", () 
 			"Framework: Vue",
 			"Framework note: Need SSR support",
 			"Framework / Vue note: Team has prior experience",
-		].join("\n"),
+		].join("\n")
 	);
 	assert.equal(
 		renderResultText(result),
@@ -93,7 +92,7 @@ test("summaries and result text include question and selected option notes", () 
 			"✓ Framework: Vue",
 			"  note: Need SSR support",
 			"  Vue note: Team has prior experience",
-		].join("\n"),
+		].join("\n")
 	);
 });
 

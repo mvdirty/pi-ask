@@ -13,7 +13,7 @@ export function getCurrentQuestion(state: AskState): AskQuestion | undefined {
 
 export function getQuestionById(
 	state: AskState,
-	questionId: string,
+	questionId: string
 ): AskQuestion | undefined {
 	return state.questions.find((question) => question.id === questionId);
 }
@@ -23,7 +23,7 @@ export function isSubmitTab(state: AskState): boolean {
 }
 
 export function getRenderableOptions(
-	question?: AskQuestion,
+	question?: AskQuestion
 ): AskDisplayOption[] {
 	if (!question) {
 		return [];
@@ -43,7 +43,7 @@ export function getRenderableOptions(
 }
 
 export function getCurrentOption(
-	state: AskState,
+	state: AskState
 ): AskDisplayOption | undefined {
 	return getRenderableOptions(getCurrentQuestion(state))[
 		state.activeOptionIndex
@@ -52,14 +52,14 @@ export function getCurrentOption(
 
 export function getAnswer(
 	state: AskState,
-	questionId: string,
+	questionId: string
 ): AskStateAnswer | undefined {
 	return state.answers[questionId];
 }
 
 export function getQuestionNote(
 	state: AskState,
-	questionId: string,
+	questionId: string
 ): string | undefined {
 	return getAnswer(state, questionId)?.note;
 }
@@ -67,21 +67,21 @@ export function getQuestionNote(
 export function getOptionNote(
 	state: AskState,
 	questionId: string,
-	optionValue: string,
+	optionValue: string
 ): string | undefined {
 	return getAnswer(state, questionId)?.optionNotes?.[optionValue];
 }
 
 export function isQuestionAnswered(
 	state: AskState,
-	questionId: string,
+	questionId: string
 ): boolean {
 	return isAnswerAnswered(getAnswer(state, questionId));
 }
 
 export function isQuestionNoteOpen(
 	state: AskState,
-	questionId: string,
+	questionId: string
 ): boolean {
 	return (
 		state.view.kind === "note" &&
@@ -93,7 +93,7 @@ export function isQuestionNoteOpen(
 export function isOptionNoteOpen(
 	state: AskState,
 	questionId: string,
-	optionValue: string,
+	optionValue: string
 ): boolean {
 	return (
 		state.view.kind === "note" &&
@@ -104,7 +104,7 @@ export function isOptionNoteOpen(
 
 export function isInputOpenForQuestion(
 	state: AskState,
-	questionId: string,
+	questionId: string
 ): boolean {
 	return state.view.kind === "input" && state.view.questionId === questionId;
 }

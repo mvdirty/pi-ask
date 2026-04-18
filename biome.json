@@ -58,9 +58,7 @@
   },
   "overrides": [
     {
-      "includes": [
-        "tests/**/*.ts"
-      ],
+      "includes": ["tests/**/*.ts"],
       "linter": {
         "rules": {
           "complexity": {
@@ -70,9 +68,7 @@
       }
     },
     {
-      "includes": [
-        "src/index.ts"
-      ],
+      "includes": ["src/index.ts"],
       "linter": {
         "rules": {
           "style": {
@@ -90,7 +86,5 @@
       }
     }
   },
-  "extends": [
-    "ultracite/biome/core"
-  ]
+  "extends": ["ultracite/biome/core"]
 }

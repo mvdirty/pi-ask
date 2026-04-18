@@ -2,13 +2,13 @@ import type { AskParams, AskQuestion, AskQuestionInput } from "../types.ts";
 
 export function normalizeQuestions(params: AskParams): AskQuestion[] {
 	return params.questions.map((question, index) =>
-		normalizeQuestion(question, index),
+		normalizeQuestion(question, index)
 	);
 }
 
 function normalizeQuestion(
 	question: AskQuestionInput,
-	index: number,
+	index: number
 ): AskQuestion {
 	return {
 		...question,
