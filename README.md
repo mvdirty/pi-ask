@@ -20,6 +20,13 @@ Different agent harnesses expose question/answer style tools in different ways. 
 
 ## Usage
 
+### Requirements
+
+- Node.js `22.19.0`
+- pnpm `10.33.0`
+
+The repo also includes `.nvmrc` and `.node-version` pinned to the same Node.js version.
+
 ### Load the extension in pi
 
 Run pi with the extension entrypoint:
@@ -41,6 +48,19 @@ pnpm install
 ```bash
 pnpm test
 ```
+
+### Commit workflow
+
+This repo uses `lefthook` together with Commitizen and conventional commitlint.
+
+Recommended flow:
+
+```bash
+pnpm commit
+```
+
+That opens the Commitizen prompt using `cz-conventional-changelog`.
+The git hooks also validate commit messages through `commitlint`.
 
 ### Biome / typecheck
 
@@ -151,7 +171,7 @@ The current prototype supports:
 - single-select questions
 - multi-select questions
 - preview questions with a dedicated preview pane
-- free-form answers via `Type your own`
+- free-form answers via an inline `Type your own` option that turns into an embedded editor when selected
 - per-question notes via `Ctrl+N`
 - per-option notes via `N`
 - full inline rendering of saved notes
@@ -180,6 +200,9 @@ Behavior:
 - only notes for currently selected options are included in the submitted result
 - deselecting an option keeps its note in UI state, so re-selecting it restores the note
 - empty note text clears the note
+- when the free-form option is selected, it becomes an inline input row with the selected-tab background style spanning the full width
+- while editing a note or free-form answer, `Up` / `Down` save the draft and move navigation instead of being trapped by the editor
+- `Space` toggles the active option on single-select questions too, but does not auto-advance
 
 ## Example agent instruction
 
