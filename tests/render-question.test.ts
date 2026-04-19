@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createInitialState } from "../src/state/create.ts";
 import { getRenderableOptions } from "../src/state/selectors.ts";
-import { applyNumberShortcut } from "../src/state/transitions.ts";
+import {
+	applyNumberShortcut,
+	enterQuestionNoteMode,
+} from "../src/state/transitions.ts";
 import { renderQuestionScreen } from "../src/ui/render-question.ts";
 
 function mockTheme() {
@@ -81,6 +84,41 @@ test("selected custom option keeps its label and renders editor below", () => {
 
 	assert(lines.some((line) => line.includes("Type your own")));
 	assert(lines.some((line) => line.includes("Type answer...")));
+});
+
+test("open question note renders inline label and editor", () => {
+	const state = enterQuestionNoteMode(
+		createInitialState({
+			questions: [
+				{
+					id: "q1",
+					prompt: "Pick any extra things to include.",
+					options: [{ value: "a", label: "A" }],
+				},
+			],
+		}),
+		"q1"
+	);
+
+	const lines: string[] = [];
+	renderQuestionScreen({
+		editor: mockEditor("", ["┌────┐", "", "└────┘"]),
+		lines,
+		options: getRenderableOptions(state.questions[0]),
+		question: state.questions[0],
+		state,
+		theme: mockTheme(),
+		width: 80,
+	});
+
+	const promptIndex = lines.findIndex((line) =>
+		line.includes("Pick any extra things to include.")
+	);
+	const inputIndex = lines.findIndex((line) => line.includes("Add a note..."));
+
+	assert.notEqual(promptIndex, -1);
+	assert.equal(inputIndex, promptIndex + 1);
+	assert(!lines.some((line) => line.includes("Note:")));
 });
 
 test("selected multiline custom option renders full editor block", () => {

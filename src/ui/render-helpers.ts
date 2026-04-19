@@ -5,7 +5,14 @@ import { wrapText } from "../text.ts";
 import { UI_DIMENSIONS, UI_TEXT } from "./constants.ts";
 
 type Theme = ExtensionContext["ui"]["theme"];
-type ThemeColor = "accent" | "muted" | "text" | "dim" | "success" | "warning";
+type ThemeColor =
+	| "accent"
+	| "muted"
+	| "text"
+	| "dim"
+	| "success"
+	| "warning"
+	| "syntaxString";
 
 const EDITOR_BORDER_PATTERN = /^[┌┐└┘─]+$/;
 const EDITOR_SCROLL_BORDER_PATTERN = /^─── [↑↓] \d+ more ─*$/;
@@ -91,6 +98,51 @@ export function renderEditorBlock(args: {
 		lines.push(
 			truncateToWidth(
 				`${indent}${renderEditorLine(editorLine, availableWidth, theme)}`,
+				width
+			)
+		);
+	}
+}
+
+export function renderLabeledEditorBlock(args: {
+	lines: string[];
+	label: string;
+	editorLines: string[];
+	width: number;
+	theme: Theme;
+	indent: string;
+	availableWidth: number;
+	placeholder?: string;
+	placeholderColor?: ThemeColor;
+	isEmpty?: boolean;
+}) {
+	const {
+		lines,
+		label,
+		editorLines,
+		width,
+		theme,
+		indent,
+		availableWidth,
+		placeholder,
+		placeholderColor = "muted",
+		isEmpty = false,
+	} = args;
+	const contentLines = getEditorContentLines(editorLines);
+	const labelText = theme.fg("accent", label);
+	const contentIndent = `${indent}${" ".repeat(visibleWidth(label) + 1)}`;
+	const editorWidth = Math.max(4, availableWidth - visibleWidth(label) - 1);
+	const firstLine =
+		isEmpty && placeholder
+			? renderInputLine(placeholder, editorWidth, theme, placeholderColor)
+			: renderEditorLine(contentLines[0] ?? "", editorWidth, theme);
+
+	lines.push(truncateToWidth(`${indent}${labelText} ${firstLine}`, width));
+
+	for (const editorLine of contentLines.slice(1)) {
+		lines.push(
+			truncateToWidth(
+				`${contentIndent}${renderEditorLine(editorLine, availableWidth, theme)}`,
 				width
 			)
 		);

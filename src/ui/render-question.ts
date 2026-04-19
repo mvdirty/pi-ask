@@ -26,8 +26,10 @@ import type {
 export function renderQuestionScreen(context: QuestionRenderContext) {
 	const { lines, question, theme, width } = context;
 	pushWrappedText(lines, question.prompt, width, theme, "text", " ", " ");
-	lines.push("");
-	renderQuestionNote(context);
+	const renderedQuestionNote = renderQuestionNote(context);
+	if (!renderedQuestionNote) {
+		lines.push("");
+	}
 
 	if (question.type === "preview") {
 		renderPreviewQuestion(context);
@@ -37,51 +39,35 @@ export function renderQuestionScreen(context: QuestionRenderContext) {
 	renderStandardQuestion(context);
 }
 
-function renderQuestionNote(context: QuestionRenderContext) {
+function renderQuestionNote(context: QuestionRenderContext): boolean {
 	const { lines, state, question, theme, width, editor } = context;
 	if (isQuestionNoteOpen(state, question.id)) {
-		pushWrappedText(
+		renderQuestionNoteEditor(
 			lines,
-			UI_TEXT.questionNoteTitle,
+			editor,
 			width,
 			theme,
-			"accent",
-			" ",
-			" "
+			UI_TEXT.editorPlaceholderNote
 		);
-		renderEditorBlock({
-			lines,
-			editorLines: editor.render(
-				Math.max(
-					UI_DIMENSIONS.editorMinWidth,
-					width - UI_DIMENSIONS.editorContentPadding
-				)
-			),
-			width,
-			theme,
-			indent: "   ",
-			availableWidth: width - 3,
-			placeholder: UI_TEXT.editorPlaceholderNote,
-			isEmpty: editor.getText().length === 0,
-		});
 		lines.push("");
-		return;
+		return true;
 	}
 
 	const existingNote = getQuestionNote(state, question.id);
 	if (!existingNote) {
-		return;
+		return false;
 	}
 	pushWrappedText(
 		lines,
-		`Question note: ${existingNote}`,
+		existingNote,
 		width,
 		theme,
 		"muted",
-		" ",
-		"   "
+		getSavedNotePrefix(theme, " "),
+		getSavedNoteContinuationPrefix(" ")
 	);
 	lines.push("");
+	return true;
 }
 
 function renderStandardQuestion(context: QuestionRenderContext) {
@@ -383,13 +369,37 @@ function renderSavedOptionNote(
 	const { lines, theme, width } = context;
 	pushWrappedText(
 		lines,
-		`Note: ${optionNote}`,
+		optionNote,
 		width,
 		theme,
 		"muted",
-		"     ",
-		"     "
+		getSavedNotePrefix(theme, "     "),
+		getSavedNoteContinuationPrefix("     ")
 	);
+}
+
+function renderQuestionNoteEditor(
+	lines: string[],
+	editor: QuestionRenderContext["editor"],
+	width: number,
+	theme: Theme,
+	placeholder: string
+) {
+	renderEditorBlock({
+		lines,
+		editorLines: editor.render(
+			Math.max(
+				UI_DIMENSIONS.editorMinWidth,
+				width - UI_DIMENSIONS.editorContentPadding
+			)
+		),
+		width,
+		theme,
+		indent: " ",
+		availableWidth: width - 1,
+		placeholder,
+		isEmpty: editor.getText().length === 0,
+	});
 }
 
 function renderIndentedEditor(
@@ -414,6 +424,14 @@ function renderIndentedEditor(
 		placeholder,
 		isEmpty: editor.getText().length === 0,
 	});
+}
+
+function getSavedNotePrefix(theme: Theme, indent: string): string {
+	return `${indent}${theme.fg("syntaxString", UI_TEXT.questionNoteTitle)} `;
+}
+
+function getSavedNoteContinuationPrefix(indent: string): string {
+	return `${indent}${" ".repeat(visibleWidth(UI_TEXT.questionNoteTitle) + 1)}`;
 }
 
 function getOptionPrefix(

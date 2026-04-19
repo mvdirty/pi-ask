@@ -12,7 +12,7 @@ export const UI_DIMENSIONS = {
 } as const;
 
 export const UI_TEXT = {
-	questionNoteTitle: "Note",
+	questionNoteTitle: "Note:",
 	reviewTitle: "Review answers",
 	readyToSubmit: "Submit answers?",
 	unanswered: "→ unanswered",
@@ -24,5 +24,5 @@ export const UI_TEXT = {
 	footerDefault:
 		" ⇆ tab · ↑↓ select · Enter confirm · N/Shift+N note · Esc dismiss",
 	editorPlaceholderInput: "Type answer...",
-	editorPlaceholderNote: "Add note...",
+	editorPlaceholderNote: "Add a note...",
 } as const;
