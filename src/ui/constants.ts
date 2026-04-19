@@ -14,7 +14,6 @@ export const UI_DIMENSIONS = {
 export const UI_TEXT = {
 	questionNoteTitle: "Note:",
 	reviewTitle: "Review answers",
-	readyToSubmit: "Submit answers?",
 	unanswered: "→ unanswered",
 	footerInput: " Enter submit · Esc close",
 	footerNote: " Enter save · Esc close",

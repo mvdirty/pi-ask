@@ -1,4 +1,4 @@
-import { truncateToWidth } from "@mariozechner/pi-tui";
+import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { SUBMIT_CHOICES } from "../constants.ts";
 import { toAskResult } from "../state/result.ts";
 import type { AskResult, AskState } from "../types.ts";
@@ -16,7 +16,8 @@ export function renderSubmitScreen(
 	lines.push("");
 
 	const submittedAnswers = toAskResult(state).answers;
-	for (const question of state.questions) {
+	for (let index = 0; index < state.questions.length; index++) {
+		const question = state.questions[index];
 		renderSubmittedQuestion(
 			lines,
 			question,
@@ -24,18 +25,11 @@ export function renderSubmitScreen(
 			theme,
 			width
 		);
+		if (index < state.questions.length - 1) {
+			lines.push("");
+		}
 	}
 
-	lines.push("");
-	pushWrappedText(
-		lines,
-		UI_TEXT.readyToSubmit,
-		width,
-		theme,
-		"success",
-		" ",
-		" "
-	);
 	lines.push("");
 	renderSubmitActions(lines, state, theme, width);
 }
@@ -47,10 +41,10 @@ function renderSubmittedQuestion(
 	theme: Theme,
 	width: number
 ) {
-	pushWrappedText(lines, question.prompt, width, theme, "muted", " ● ", "   ");
+	pushWrappedText(lines, question.label, width, theme, "text", " ", " ");
 	if (!answer) {
 		lines.push(
-			truncateToWidth(`   ${theme.fg("warning", UI_TEXT.unanswered)}`, width)
+			truncateToWidth(`   ${theme.fg("dim", UI_TEXT.unanswered)}`, width)
 		);
 		return;
 	}
@@ -64,46 +58,88 @@ function renderSubmittedAnswer(
 	theme: Theme,
 	width: number
 ) {
-	const answerText = answer.labels.join(", ");
-	if (answerText) {
-		pushWrappedText(
-			lines,
-			`→ ${answerText}`,
-			width,
-			theme,
-			isCustomOnlyAnswer(answer) ? "text" : "success",
-			"   ",
-			"     "
-		);
-	}
 	if (answer.note) {
+		renderSubmittedNote(lines, answer.note, theme, width);
+	}
+
+	if (shouldRenderAnswersIndividually(answer)) {
+		renderSubmittedSelections(lines, answer, theme, width);
+		return;
+	}
+
+	const answerText = answer.labels.join(", ");
+	if (!answerText) {
+		return;
+	}
+
+	pushWrappedText(
+		lines,
+		`→ ${answerText}`,
+		width,
+		theme,
+		isCustomOnlyAnswer(answer) ? "text" : "success",
+		"   ",
+		"     "
+	);
+}
+
+function renderSubmittedSelections(
+	lines: string[],
+	answer: AskResult["answers"][string],
+	theme: Theme,
+	width: number
+) {
+	for (let index = 0; index < answer.labels.length; index++) {
+		const label = answer.labels[index];
+		const value = answer.values[index] ?? label;
 		pushWrappedText(
 			lines,
-			`Question note: ${answer.note}`,
+			`→ ${label}`,
 			width,
 			theme,
-			"muted",
+			"success",
 			"   ",
 			"     "
 		);
-	}
-	for (let index = 0; index < answer.values.length; index++) {
-		const value = answer.values[index];
-		const label = answer.labels[index] ?? value;
+
 		const note = answer.optionNotes?.[value];
-		if (!note) {
-			continue;
+		if (note) {
+			renderSubmittedNote(lines, note, theme, width);
 		}
-		pushWrappedText(
-			lines,
-			`${label} note: ${note}`,
-			width,
-			theme,
-			"muted",
-			"   ",
-			"     "
-		);
 	}
+}
+
+function shouldRenderAnswersIndividually(
+	answer: AskResult["answers"][string]
+): boolean {
+	if (!answer.labels.length) {
+		return false;
+	}
+
+	return (
+		answer.labels.length > 1 ||
+		Boolean(answer.optionNotes && Object.keys(answer.optionNotes).length > 0)
+	);
+}
+
+function renderSubmittedNote(
+	lines: string[],
+	note: string,
+	theme: Theme,
+	width: number
+) {
+	const indent = "     ";
+	const notePrefix = `${indent}${theme.fg("syntaxString", UI_TEXT.questionNoteTitle)} `;
+	const continuationPrefix = `${indent}${" ".repeat(visibleWidth(UI_TEXT.questionNoteTitle) + 1)}`;
+	pushWrappedText(
+		lines,
+		note,
+		width,
+		theme,
+		"muted",
+		notePrefix,
+		continuationPrefix
+	);
 }
 
 function isCustomOnlyAnswer(answer: AskResult["answers"][string]): boolean {
