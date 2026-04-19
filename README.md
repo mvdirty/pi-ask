@@ -163,7 +163,8 @@ Behavior details:
 - on multi-select questions, submitted `values` and `labels` keep selected options first and append the free-form answer last when both exist
 - unanswered questions are omitted from `details.answers`
 - when the free-form option is selected, it becomes an inline input row with the selected-tab background style spanning the full width
-- while editing a note or free-form answer, arrow keys and `Tab` stay inside the editor so the typing cursor can move naturally
+- while editing a note or free-form answer, arrow keys and `Tab` stay inside the editor while text is present so the typing cursor can move naturally
+- when a note or free-form editor is empty, `Up`/`Down` navigate options and `Tab`/`Shift+Tab`/`Left`/`Right` navigate tabs without closing the editor first
 - free-form answer editors support pi-style `@` file path autocomplete for quickly mentioning project files
 - `Esc` closes the editor and returns to navigation mode
 - `Ctrl+C` dismisses the entire ask flow immediately, even from note/free-form editing, without saving the current draft

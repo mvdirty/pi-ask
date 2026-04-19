@@ -115,8 +115,9 @@ Editing flow:
 - `Enter`: save and submit the current input
 - `Esc`: save draft and close the editor
 - `Ctrl+C`: dismiss the entire flow immediately without saving the current editor draft
-- arrow keys and `Tab` stay in the editor so the cursor can move while typing
-- navigation resumes only after closing the editor with `Esc`
+- when editor has text, arrow keys and `Tab` stay in the editor so the cursor can move while typing
+- when editor is empty, `Up`/`Down` move options and `Tab`/`Shift+Tab`/`Left`/`Right` move between tabs without requiring `Esc` first
+- navigation resumes only after closing the editor with `Esc`, unless the editor is empty and the navigation keys above are used
 
 ## Non-interactive mode
 

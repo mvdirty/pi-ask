@@ -105,7 +105,11 @@ function renderController(
 }
 
 function handleControllerInput(controller: AskFlowController, data: string) {
-	const command = getInputCommand(controller.state, data);
+	const command = getInputCommand(
+		controller.state,
+		data,
+		isEditingView(controller.state) ? controller.editor.getText() : ""
+	);
 	if (isEditingView(controller.state)) {
 		handleEditingCommand(controller, command, data);
 		return;

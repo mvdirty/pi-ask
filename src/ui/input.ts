@@ -21,14 +21,15 @@ export type AskInputCommand =
 
 export function getInputCommand(
 	state: AskState,
-	data: string
+	data: string,
+	editingText = ""
 ): AskInputCommand {
 	if (matchesKey(data, Key.ctrl("c"))) {
 		return { kind: "dismiss" };
 	}
 
 	if (state.view.kind === "input" || state.view.kind === "note") {
-		return getEditingInputCommand(data);
+		return getEditingInputCommand(data, editingText);
 	}
 
 	return getNavigationInputCommand(data);
@@ -46,9 +47,26 @@ export function formatKeybindingLabel(key: string): string {
 		.join("+");
 }
 
-function getEditingInputCommand(data: string): AskInputCommand {
+function getEditingInputCommand(
+	data: string,
+	editingText: string
+): AskInputCommand {
 	if (matchesKey(data, Key.escape)) {
 		return { kind: "editClose" };
+	}
+	if (editingText.length === 0) {
+		if (matchesKey(data, Key.tab) || matchesKey(data, Key.right)) {
+			return { kind: "editMoveTab", delta: 1 };
+		}
+		if (matchesKey(data, Key.shift("tab")) || matchesKey(data, Key.left)) {
+			return { kind: "editMoveTab", delta: -1 };
+		}
+		if (matchesKey(data, Key.up)) {
+			return { kind: "editMoveOption", delta: -1 };
+		}
+		if (matchesKey(data, Key.down)) {
+			return { kind: "editMoveOption", delta: 1 };
+		}
 	}
 	return { kind: "delegateToEditor" };
 }
