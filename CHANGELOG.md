@@ -1,3 +1,15 @@
+# [0.3.0](https://github.com/eko24ive/pi-ask/compare/v0.2.0...v0.3.0) (2026-04-23)
+
+
+### Bug Fixes
+
+* allow empty editor navigation shortcuts ([5d7ccc8](https://github.com/eko24ive/pi-ask/commit/5d7ccc8ce2e45c70a36932f048a90419dcb59304))
+
+
+### Features
+
+* harden ask tool validation and fallback ([050e880](https://github.com/eko24ive/pi-ask/commit/050e8800cdcd97be635bb95d9500a309d207f7f8))
+
 # [0.2.0](https://github.com/eko24ive/pi-ask/compare/v0.1.1...v0.2.0) (2026-04-19)
 
 
