@@ -4,7 +4,8 @@
 
 It lets an agent pause, ask structured questions in a terminal UI, and continue with normalized answers instead of guessing.
 
-https://github.com/user-attachments/assets/a74827fb-6093-412a-895f-69f9514bc4fe
+https://github.com/user-attachments/assets/a8503ca9-afcb-4c31-9edc-353b985a0209
+
 
 ## Install
 
