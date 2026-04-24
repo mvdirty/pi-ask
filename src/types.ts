@@ -21,6 +21,16 @@ export interface AskParams {
 	title?: string;
 }
 
+export interface AskValidationIssue {
+	message: string;
+	path: string;
+}
+
+export interface AskValidationError {
+	issues: AskValidationIssue[];
+	kind: "invalid_input";
+}
+
 export interface AskQuestion
 	extends Omit<AskQuestionInput, "type" | "required" | "label"> {
 	label: string;
@@ -50,15 +60,69 @@ export interface AskResultAnswer {
 	values: string[];
 }
 
+export interface AskQuestionSummary {
+	id: string;
+	label: string;
+	prompt: string;
+	type: AskQuestionType;
+}
+
+export interface AskElaborationQuestionContext extends AskQuestionSummary {
+	options: AskOption[];
+}
+
+export interface AskElaborationQuestionItem {
+	answer?: AskResultAnswer;
+	answered: boolean;
+	note: string;
+	question: AskElaborationQuestionContext;
+	target: {
+		kind: "question";
+	};
+}
+
+export interface AskElaborationOptionItem {
+	answer?: AskResultAnswer;
+	answered: boolean;
+	note: string;
+	option: AskOption;
+	question: AskElaborationQuestionContext;
+	selected: boolean;
+	target: {
+		kind: "option";
+		optionValue: string;
+	};
+}
+
+export type AskElaborationItem =
+	| AskElaborationQuestionItem
+	| AskElaborationOptionItem;
+
+export interface AskElaborationPayload {
+	instruction: string;
+	items: AskElaborationItem[];
+	nextAction: "clarify" | "clarify_then_reask";
+}
+
+export interface AskContinuationQuestionState {
+	status: "answered" | "needs_clarification" | "unanswered";
+}
+
+export interface AskContinuationPayload {
+	affectedQuestionIds: string[];
+	preservedAnswers: Record<string, AskResultAnswer>;
+	questionStates: Record<string, AskContinuationQuestionState>;
+	strategy: "refine_only" | "resume";
+}
+
 export interface AskResult {
 	answers: Record<string, AskResultAnswer>;
 	cancelled: boolean;
-	questions: Array<{
-		id: string;
-		label: string;
-		prompt: string;
-		type: AskQuestionType;
-	}>;
+	continuation?: AskContinuationPayload;
+	elaboration?: AskElaborationPayload;
+	error?: AskValidationError;
+	mode: "submit" | "elaborate";
+	questions: AskQuestionSummary[];
 	title?: string;
 }
 
@@ -75,6 +139,7 @@ export interface AskState {
 	answers: Record<string, AskStateAnswer>;
 	cancelled: boolean;
 	completed: boolean;
+	mode: "submit" | "elaborate";
 	questions: AskQuestion[];
 	title?: string;
 	view: ViewState;

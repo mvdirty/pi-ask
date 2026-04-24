@@ -1,24 +1,24 @@
 import { Type } from "typebox";
 
 export const AskOptionSchema = Type.Object({
-	value: Type.String({
-		minLength: 1,
-		description:
-			"Machine-readable value returned for this option in the result",
-	}),
-	label: Type.String({
-		minLength: 1,
-		description: "Short visible option label shown in the list",
-	}),
+	value: Type.Optional(
+		Type.String({
+			description:
+				"Required machine-readable value returned for this option in the result",
+		})
+	),
+	label: Type.Optional(
+		Type.String({
+			description: "Required short visible option label shown in the list",
+		})
+	),
 	description: Type.Optional(
 		Type.String({
-			minLength: 1,
 			description: "Optional one-line explanation to help the user choose",
 		})
 	),
 	preview: Type.Optional(
 		Type.String({
-			minLength: 1,
 			description:
 				"Optional preview content shown in the dedicated preview pane for preview questions",
 		})
@@ -26,30 +26,28 @@ export const AskOptionSchema = Type.Object({
 });
 
 export const AskQuestionSchema = Type.Object({
-	id: Type.String({
-		minLength: 1,
-		description:
-			"Stable question identifier used as the key in returned answers",
-	}),
+	id: Type.Optional(
+		Type.String({
+			description:
+				"Required stable question identifier used as the key in returned answers",
+		})
+	),
 	label: Type.Optional(
 		Type.String({
-			minLength: 1,
 			description: "Short tab label, e.g. Goal, Audience, Tone, Scope",
 		})
 	),
-	prompt: Type.String({
-		minLength: 1,
-		description:
-			"Direct question shown to the user; ask about one decision at a time",
-	}),
+	prompt: Type.Optional(
+		Type.String({
+			description:
+				"Required direct question shown to the user; ask about one decision at a time",
+		})
+	),
 	type: Type.Optional(
-		Type.Union(
-			[Type.Literal("single"), Type.Literal("multi"), Type.Literal("preview")],
-			{
-				description:
-					"Question type: use `single` by default, `multi` when several answers may apply, and `preview` when each option needs a preview pane",
-			}
-		)
+		Type.String({
+			description:
+				"Question type: use `single` by default. Use `preview` only when every option includes `preview` text for the dedicated preview pane; descriptions alone are not enough.",
+		})
 	),
 	required: Type.Optional(
 		Type.Boolean({
@@ -58,7 +56,6 @@ export const AskQuestionSchema = Type.Object({
 		})
 	),
 	options: Type.Array(AskOptionSchema, {
-		minItems: 1,
 		description: "Answer options; prefer 2-4 clear choices when possible",
 	}),
 });
@@ -66,13 +63,11 @@ export const AskQuestionSchema = Type.Object({
 export const AskParamsSchema = Type.Object({
 	title: Type.Optional(
 		Type.String({
-			minLength: 1,
 			description:
 				"Optional short title shown above the clarification flow, e.g. README direction",
 		})
 	),
 	questions: Type.Array(AskQuestionSchema, {
-		minItems: 1,
 		description: "Questions to ask in the interactive clarification flow",
 	}),
 });

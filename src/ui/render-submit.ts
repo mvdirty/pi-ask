@@ -1,10 +1,17 @@
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { SUBMIT_CHOICES } from "../constants.ts";
-import { toAskResult } from "../state/result.ts";
-import type { AskResult, AskState } from "../types.ts";
+import { serializeAnswer } from "../state/answers.ts";
+import type { AskResult, AskState, AskStateAnswer } from "../types.ts";
 import { UI_TEXT } from "./constants.ts";
 import { pushWrappedText } from "./render-helpers.ts";
 import type { Theme } from "./render-types.ts";
+
+type ReviewAnswer = AskResult["answers"][string] & {
+	extraOptionNotes?: Array<{
+		label: string;
+		note: string;
+	}>;
+};
 
 export function renderSubmitScreen(
 	lines: string[],
@@ -15,13 +22,13 @@ export function renderSubmitScreen(
 	pushWrappedText(lines, UI_TEXT.reviewTitle, width, theme, "accent", " ", " ");
 	lines.push("");
 
-	const submittedAnswers = toAskResult(state).answers;
+	const showAllNotes = state.activeSubmitActionIndex === 1;
 	for (let index = 0; index < state.questions.length; index++) {
 		const question = state.questions[index];
 		renderSubmittedQuestion(
 			lines,
 			question,
-			submittedAnswers[question.id],
+			toReviewAnswer(question, state.answers[question.id], showAllNotes),
 			theme,
 			width
 		);
@@ -37,7 +44,7 @@ export function renderSubmitScreen(
 function renderSubmittedQuestion(
 	lines: string[],
 	question: AskState["questions"][number],
-	answer: AskResult["answers"][string] | undefined,
+	answer: ReviewAnswer | undefined,
 	theme: Theme,
 	width: number
 ) {
@@ -54,7 +61,7 @@ function renderSubmittedQuestion(
 
 function renderSubmittedAnswer(
 	lines: string[],
-	answer: AskResult["answers"][string],
+	answer: ReviewAnswer,
 	theme: Theme,
 	width: number
 ) {
@@ -64,28 +71,29 @@ function renderSubmittedAnswer(
 
 	if (shouldRenderAnswersIndividually(answer)) {
 		renderSubmittedSelections(lines, answer, theme, width);
+		renderExtraOptionNotes(lines, answer, theme, width);
 		return;
 	}
 
 	const answerText = answer.labels.join(", ");
-	if (!answerText) {
-		return;
+	if (answerText) {
+		pushWrappedText(
+			lines,
+			`→ ${answerText}`,
+			width,
+			theme,
+			isCustomOnlyAnswer(answer) ? "text" : "success",
+			"   ",
+			"     "
+		);
 	}
 
-	pushWrappedText(
-		lines,
-		`→ ${answerText}`,
-		width,
-		theme,
-		isCustomOnlyAnswer(answer) ? "text" : "success",
-		"   ",
-		"     "
-	);
+	renderExtraOptionNotes(lines, answer, theme, width);
 }
 
 function renderSubmittedSelections(
 	lines: string[],
-	answer: AskResult["answers"][string],
+	answer: ReviewAnswer,
 	theme: Theme,
 	width: number
 ) {
@@ -109,9 +117,7 @@ function renderSubmittedSelections(
 	}
 }
 
-function shouldRenderAnswersIndividually(
-	answer: AskResult["answers"][string]
-): boolean {
+function shouldRenderAnswersIndividually(answer: ReviewAnswer): boolean {
 	if (!answer.labels.length) {
 		return false;
 	}
@@ -142,8 +148,83 @@ function renderSubmittedNote(
 	);
 }
 
+function renderLabeledSubmittedNote(
+	lines: string[],
+	label: string,
+	note: string,
+	theme: Theme,
+	width: number
+) {
+	const indent = "     ";
+	const title = `${label} ${UI_TEXT.questionNoteTitle}`;
+	const notePrefix = `${indent}${theme.fg("syntaxString", title)} `;
+	const continuationPrefix = `${indent}${" ".repeat(visibleWidth(title) + 1)}`;
+	pushWrappedText(
+		lines,
+		note,
+		width,
+		theme,
+		"muted",
+		notePrefix,
+		continuationPrefix
+	);
+}
+
+function renderExtraOptionNotes(
+	lines: string[],
+	answer: ReviewAnswer,
+	theme: Theme,
+	width: number
+) {
+	for (const option of answer.extraOptionNotes ?? []) {
+		renderLabeledSubmittedNote(lines, option.label, option.note, theme, width);
+	}
+}
+
 function isCustomOnlyAnswer(answer: AskResult["answers"][string]): boolean {
 	return answer.indices.length === 0 && !!answer.customText;
+}
+
+function toReviewAnswer(
+	question: AskState["questions"][number],
+	answer: AskStateAnswer | undefined,
+	showAllNotes: boolean
+): ReviewAnswer | undefined {
+	if (!answer) {
+		return;
+	}
+
+	const serialized = serializeAnswer(answer);
+	const hasSelectedAnswer = serialized.labels.length > 0;
+	if (!showAllNotes) {
+		return hasSelectedAnswer ? serialized : undefined;
+	}
+
+	const selectedValues = new Set(serialized.values);
+	const extraOptionNotes = Object.entries(answer.optionNotes ?? {})
+		.filter(([value, note]) => !selectedValues.has(value) && Boolean(note))
+		.map(([value, note]) => {
+			const option = question.options.find(
+				(candidate) => candidate.value === value
+			);
+			return option ? { label: option.label, note } : undefined;
+		})
+		.filter((entry): entry is { label: string; note: string } =>
+			Boolean(entry)
+		);
+
+	if (
+		!(hasSelectedAnswer || serialized.note) &&
+		extraOptionNotes.length === 0
+	) {
+		return;
+	}
+
+	return {
+		...serialized,
+		extraOptionNotes:
+			extraOptionNotes.length > 0 ? extraOptionNotes : undefined,
+	};
 }
 
 function renderSubmitActions(

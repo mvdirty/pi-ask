@@ -1,7 +1,25 @@
-import { CANCELLED_SUMMARY, SUBMITTED_SUMMARY } from "../constants.ts";
-import { formatResultLines } from "../result-format.ts";
-import type { AskResult, AskState } from "../types.ts";
-import { isAnswerEmpty, serializeAnswer } from "./answers.ts";
+import {
+	CANCELLED_SUMMARY,
+	ELABORATED_SUMMARY,
+	ELABORATION_INSTRUCTION,
+	SUBMITTED_SUMMARY,
+} from "../constants.ts";
+import { formatElaborationLines, formatResultLines } from "../result-format.ts";
+import type {
+	AskContinuationPayload,
+	AskElaborationPayload,
+	AskResult,
+	AskResultAnswer,
+	AskState,
+	AskStateAnswer,
+} from "../types.ts";
+import {
+	cloneResultAnswer,
+	isAnswerAnswered,
+	isAnswerEmpty,
+	isOptionSelected,
+	serializeAnswer,
+} from "./answers.ts";
 
 export function toAskResult(state: AskState): AskResult {
 	const answers = Object.fromEntries(
@@ -9,12 +27,17 @@ export function toAskResult(state: AskState): AskResult {
 			.map(
 				([questionId, answer]) => [questionId, serializeAnswer(answer)] as const
 			)
-			.filter(([, answer]) => !isSerializedAnswerEmpty(answer))
+			.filter(([, answer]) =>
+				state.mode === "elaborate"
+					? isSerializedAnswerCommitted(answer)
+					: !isSerializedAnswerEmpty(answer)
+			)
 	);
 
 	return {
 		title: state.title,
 		cancelled: state.cancelled,
+		mode: state.mode,
 		questions: state.questions.map((question) => ({
 			id: question.id,
 			label: question.label,
@@ -22,12 +45,22 @@ export function toAskResult(state: AskState): AskResult {
 			type: question.type,
 		})),
 		answers,
+		continuation:
+			state.mode === "elaborate"
+				? serializeContinuation(state, answers)
+				: undefined,
+		elaboration:
+			state.mode === "elaborate" ? serializeElaboration(state) : undefined,
 	};
 }
 
 export function summarizeResult(result: AskResult): string {
 	if (result.cancelled) {
 		return CANCELLED_SUMMARY;
+	}
+	if (result.mode === "elaborate") {
+		const lines = formatElaborationLines(result, { mode: "summary" });
+		return lines.join("\n") || ELABORATED_SUMMARY;
 	}
 
 	const lines = formatResultLines(result, { mode: "summary" });
@@ -49,5 +82,143 @@ function isSerializedAnswerEmpty(
 		!answer.customText &&
 		!answer.note &&
 		(!answer.optionNotes || Object.keys(answer.optionNotes).length === 0)
+	);
+}
+
+function serializeContinuation(
+	state: AskState,
+	answers: AskResult["answers"]
+): AskContinuationPayload {
+	const affectedQuestionIds: string[] = [];
+	const preservedAnswers: AskContinuationPayload["preservedAnswers"] = {};
+	const questionStates: AskContinuationPayload["questionStates"] = {};
+
+	for (const question of state.questions) {
+		const answer = state.answers[question.id];
+		const hasClarificationNeed = !!(answer?.note || answer?.optionNotes);
+		const committedAnswer = answers[question.id];
+		const answered = !!committedAnswer;
+
+		if (hasClarificationNeed) {
+			affectedQuestionIds.push(question.id);
+			questionStates[question.id] = { status: "needs_clarification" };
+			continue;
+		}
+
+		if (answered) {
+			preservedAnswers[question.id] = cloneResultAnswer(committedAnswer);
+			questionStates[question.id] = { status: "answered" };
+			continue;
+		}
+
+		questionStates[question.id] = { status: "unanswered" };
+	}
+
+	return {
+		affectedQuestionIds,
+		preservedAnswers,
+		questionStates,
+		strategy: "refine_only",
+	};
+}
+
+function serializeElaboration(state: AskState): AskElaborationPayload {
+	const items = state.questions.flatMap((question) =>
+		serializeElaborationItemsForQuestion(question, state.answers[question.id])
+	);
+
+	return {
+		instruction: ELABORATION_INSTRUCTION,
+		nextAction: "clarify_then_reask",
+		items,
+	};
+}
+
+function serializeElaborationItemsForQuestion(
+	question: AskState["questions"][number],
+	answer: AskStateAnswer | undefined
+): AskElaborationPayload["items"] {
+	if (!(answer?.note || answer?.optionNotes)) {
+		return [];
+	}
+
+	const questionContext = createElaborationQuestionContext(question);
+	const serializedAnswer = toCommittedResultAnswer(answer);
+	const answered = isAnswerAnswered(answer);
+	const items: AskElaborationPayload["items"] = [];
+
+	if (answer.note) {
+		items.push({
+			target: { kind: "question" },
+			question: questionContext,
+			answered,
+			answer: serializedAnswer,
+			note: answer.note,
+		});
+	}
+
+	for (const [value, note] of Object.entries(answer.optionNotes ?? {})) {
+		const option = question.options.find(
+			(candidate) => candidate.value === value
+		);
+		if (!(option && note)) {
+			continue;
+		}
+
+		items.push({
+			target: {
+				kind: "option",
+				optionValue: value,
+			},
+			question: questionContext,
+			option: cloneOption(option),
+			selected: isOptionSelected(answer, value),
+			answered,
+			answer: serializedAnswer,
+			note,
+		});
+	}
+
+	return items;
+}
+
+function createElaborationQuestionContext(
+	question: AskState["questions"][number]
+) {
+	return {
+		id: question.id,
+		label: question.label,
+		prompt: question.prompt,
+		type: question.type,
+		options: question.options.map(cloneOption),
+	};
+}
+
+function cloneOption(option: AskState["questions"][number]["options"][number]) {
+	return {
+		value: option.value,
+		label: option.label,
+		...(option.description ? { description: option.description } : {}),
+		...(option.preview ? { preview: option.preview } : {}),
+	};
+}
+
+function toCommittedResultAnswer(
+	answer: AskStateAnswer | undefined
+): AskResultAnswer | undefined {
+	if (!(answer && isAnswerAnswered(answer))) {
+		return;
+	}
+	return cloneResultAnswer(serializeAnswer(answer));
+}
+
+function isSerializedAnswerCommitted(
+	answer: AskResult["answers"][string]
+): boolean {
+	return (
+		answer.values.length > 0 ||
+		answer.labels.length > 0 ||
+		answer.indices.length > 0 ||
+		!!answer.customText
 	);
 }

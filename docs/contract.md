@@ -37,7 +37,7 @@ This document defines the stable external behavior. It does not explain internal
 - `type` defaults to `single`
 - `required` defaults to `false`
 - `required` is metadata only; it never blocks submission
-- preview questions require preview text for every option
+- preview questions require preview text for every option; option descriptions do not satisfy this requirement, and invalid preview payloads report a fix hint to add preview text or switch to `type: "single"`
 - non-`preview` questions get an internal `Type your own` option
 
 ## Output
@@ -48,6 +48,14 @@ This document defines the stable external behavior. It does not explain internal
   details: {
     title?: string;
     cancelled: boolean;
+    error?: {
+      kind: "invalid_input";
+      issues: Array<{
+        path: string;
+        message: string;
+      }>;
+    };
+    mode: "submit" | "elaborate";
     questions: Array<{
       id: string;
       label: string;
@@ -65,6 +73,84 @@ This document defines the stable external behavior. It does not explain internal
         optionNotes?: Record<string, string>;
       }
     >;
+    continuation?: {
+      strategy: "refine_only" | "resume";
+      affectedQuestionIds: string[];
+      preservedAnswers: Record<string, {
+        values: string[];
+        labels: string[];
+        indices: number[];
+        customText?: string;
+        note?: string;
+        optionNotes?: Record<string, string>;
+      }>;
+      questionStates: Record<string, {
+        status: "answered" | "needs_clarification" | "unanswered";
+      }>;
+    };
+    elaboration?: {
+      instruction: string;
+      nextAction: "clarify" | "clarify_then_reask";
+      items: Array<
+        | {
+            target: { kind: "question" };
+            question: {
+              id: string;
+              label: string;
+              prompt: string;
+              type: "single" | "multi" | "preview";
+              options: Array<{
+                value: string;
+                label: string;
+                description?: string;
+                preview?: string;
+              }>;
+            };
+            answered: boolean;
+            answer?: {
+              values: string[];
+              labels: string[];
+              indices: number[];
+              customText?: string;
+              note?: string;
+              optionNotes?: Record<string, string>;
+            };
+            note: string;
+          }
+        | {
+            target: { kind: "option"; optionValue: string };
+            question: {
+              id: string;
+              label: string;
+              prompt: string;
+              type: "single" | "multi" | "preview";
+              options: Array<{
+                value: string;
+                label: string;
+                description?: string;
+                preview?: string;
+              }>;
+            };
+            option: {
+              value: string;
+              label: string;
+              description?: string;
+              preview?: string;
+            };
+            selected: boolean;
+            answered: boolean;
+            answer?: {
+              values: string[];
+              labels: string[];
+              indices: number[];
+              customText?: string;
+              note?: string;
+              optionNotes?: Record<string, string>;
+            };
+            note: string;
+          }
+      >;
+    };
   };
 }
 ```
@@ -72,7 +158,14 @@ This document defines the stable external behavior. It does not explain internal
 ## Output rules
 
 - `cancelled: true` means the user dismissed the flow, UI was unavailable, or the payload was invalid before UI opened
+- invalid payloads return `error.kind === "invalid_input"` with structured `issues` and a transcript-friendly `Invalid ask_user payload:` message
+- `mode: "submit"` is normal completion; `mode: "elaborate"` means the user asked the agent to continue with follow-up clarification based on notes
 - unanswered questions are omitted from `answers`
+- in `mode: "elaborate"`, `answers` contains only committed answers; note-only entries move to `elaboration.items`
+- `continuation.strategy === "refine_only"` means the next ask should refine the current flow rather than restart it
+- `continuation.preservedAnswers` contains previously committed answers that should be kept as context and not re-asked
+- `continuation.affectedQuestionIds` lists the only questions that should be revisited
+- `continuation.questionStates` marks each question as `answered`, `needs_clarification`, or `unanswered`
 - single-select answers still use arrays
 - `indices` are 1-based rendered option positions
 - `customText` stores the free-form answer
@@ -83,6 +176,15 @@ This document defines the stable external behavior. It does not explain internal
 - `note` stores a question-level note
 - `optionNotes` includes only notes for selected options
 - question notes may exist without a selected answer
+- `elaboration.items` includes all question notes and all option notes, even for unselected options
+- every elaboration item includes the full normalized question and option list for that question so referential notes like `above` remain understandable to the agent
+- option-targeted elaboration items include the specific noted option plus whether it is currently selected
+- question-targeted elaboration items include whether the question already has a committed answer
+- `elaboration.instruction` tells the agent to answer the clarification directly first, then re-ask only the affected questions if a choice is still needed
+- after clarification, agents should prefer another structured follow-up over plain-text multiple choice when a decision is still unresolved
+- once prior answers narrow the branch, agents should bundle the next 2-3 related unresolved questions into one follow-up ask when possible, instead of using a long sequence of single-question asks
+- `elaboration` is only present when `mode === "elaborate"`
+- elaborate `content` text and transcript rendering describe each note directly using the full question prompt and option label, instead of a generic elaboration banner
 
 ## Supported UX
 
@@ -93,8 +195,11 @@ This document defines the stable external behavior. It does not explain internal
 - question notes via `Shift+N`
 - option notes via `n`
 - number-key quick selection
-- submit/cancel review tab
+- submit/elaborate/cancel review tab
+- on the review tab, `Submit` and `Cancel` preview notes only for answered questions
+- on the review tab, `Elaborate` preview expands to all question notes and all option notes, including notes on unselected options
 - transcript-friendly call and result rendering
+- elaborate results are phrased as direct follow-up instructions, for example: `User asked to elaborate on question "Which option would you like to select?" option "Option A" with note "why this one?"`
 
 ## Keyboard behavior
 
@@ -122,6 +227,8 @@ Editing flow:
 ## Non-interactive mode
 
 If `ctx.hasUI === false`, the tool returns a `Needs user input` message in `content` and a cancelled result in `details`.
+
+Validation is handled inside the tool so malformed calls produce the same structured error shape as other invalid payloads instead of relying on pre-execution schema failures.
 
 The fallback message includes normalized pending questions and options so the caller can re-ask them manually. `details.questions` still contains normalized question metadata, while `details.answers` stays empty until a user responds.
 

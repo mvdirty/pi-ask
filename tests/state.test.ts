@@ -237,6 +237,19 @@ test("submit can complete even when some questions are unanswered", () => {
 
 	assert.equal(state.completed, true);
 	assert.equal(state.cancelled, false);
+	assert.equal(state.mode, "submit");
+});
+
+test("submit tab can complete in elaborate mode", () => {
+	let state = createInitialState(sampleParams());
+	state = moveTab(state, -1);
+	state = moveOption(state, 1);
+	assert.equal(state.activeSubmitActionIndex, 1);
+	state = confirmCurrentSelection(state);
+
+	assert.equal(state.completed, true);
+	assert.equal(state.cancelled, false);
+	assert.equal(state.mode, "elaborate");
 });
 
 test("selecting other enters input mode and custom submit stores typed answer", () => {

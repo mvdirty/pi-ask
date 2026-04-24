@@ -3,8 +3,14 @@ import { Text, truncateToWidth } from "@mariozechner/pi-tui";
 import { renderResultText } from "./result.ts";
 import { AskParamsSchema } from "./schema.ts";
 import { createInitialState } from "./state/create.ts";
+import { collectValidationIssues } from "./state/normalize.ts";
 import { summarizeResult, toAskResult } from "./state/result.ts";
-import type { AskParams, AskQuestionInput, AskResult } from "./types.ts";
+import type {
+	AskParams,
+	AskQuestionInput,
+	AskResult,
+	AskValidationIssue,
+} from "./types.ts";
 import { UI_DIMENSIONS } from "./ui/constants.ts";
 import { runAskFlow } from "./ui/controller.ts";
 
@@ -13,14 +19,19 @@ export function registerAskTool(pi: ExtensionAPI) {
 		name: "ask_user",
 		label: "Ask User",
 		description:
-			"Interactive clarification tool for cases where the next step depends on user preferences, missing requirements, or choosing between multiple valid directions. Ask a short structured interview, collect normalized answers, and continue using those answers explicitly instead of guessing. Supports single-select, multi-select, and preview questions with a dedicated preview pane.",
+			"Interactive clarification tool for cases where the next step depends on user preferences, missing requirements, or choosing between multiple valid directions. Ask a short structured interview, collect normalized answers, and continue using those answers explicitly instead of guessing. Supports single-select, multi-select, and preview-pane questions. Always include a machine-readable `value` for every option. Use `preview` only when every option includes `preview` text; descriptions alone are not enough.",
 		promptSnippet:
 			"Clarify ambiguous or preference-sensitive decisions with a short interactive interview before proceeding",
 		promptGuidelines: [
 			"Use this tool before making preference-sensitive decisions about scope, tone, UX, naming, architecture, docs, or implementation direction.",
 			"When multiple valid directions exist, ask 1-3 concise questions instead of committing to one path on your own.",
 			"Prefer one focused decision per question and use short labels with 2-4 clear options.",
-			'Use `type: "single"` by default, `type: "multi"` only when several answers can genuinely apply, and `type: "preview"` when options need a dedicated preview pane.',
+			"Always include a non-empty `value` for every option.",
+			'Use `type: "single"` by default and `type: "multi"` only when several answers can genuinely apply.',
+			'Use `type: "preview"` only when every option includes non-empty `preview` text for the dedicated preview pane. Option descriptions do not satisfy this requirement.',
+			"After clarifying a note or follow-up question, prefer another structured ask_user follow-up if a choice is still needed instead of switching to plain-text multiple choice in chat.",
+			"When prior answers already narrow the branch, bundle the next 2-3 related unresolved decisions into one follow-up ask instead of issuing a long sequence of single-question asks.",
+			"Use one-at-a-time follow-up asks only when the next question materially depends on the previous answer.",
 		],
 		parameters: AskParamsSchema,
 
@@ -28,8 +39,10 @@ export function registerAskTool(pi: ExtensionAPI) {
 			const validation = validateParams(params);
 			if (!validation.ok) {
 				return {
-					content: [{ type: "text", text: `Error: ${validation.error}` }],
-					details: errorResultDetails(params, true),
+					content: [
+						{ type: "text", text: formatValidationError(validation.issues) },
+					],
+					details: errorResultDetails(params, validation.issues),
 				};
 			}
 
@@ -83,6 +96,9 @@ export function registerAskTool(pi: ExtensionAPI) {
 				return new Text(text?.type === "text" ? text.text : "", 0, 0);
 			}
 
+			if (details.error) {
+				return new Text(theme.fg("warning", "Invalid input"), 0, 0);
+			}
 			if (details.cancelled) {
 				return new Text(theme.fg("warning", "Cancelled"), 0, 0);
 			}
@@ -92,19 +108,31 @@ export function registerAskTool(pi: ExtensionAPI) {
 	});
 }
 
-function errorResultDetails(params: AskParams, cancelled: boolean): AskResult {
+function errorResultDetails(
+	params: AskParams,
+	issues: AskValidationIssue[]
+): AskResult {
 	try {
 		const state = createInitialState(params);
 		return {
 			...toAskResult(state),
-			cancelled,
+			cancelled: true,
+			error: {
+				kind: "invalid_input",
+				issues,
+			},
 		};
 	} catch {
 		return {
 			title: params.title,
-			cancelled,
+			cancelled: true,
+			mode: "submit",
 			questions: [],
 			answers: {},
+			error: {
+				kind: "invalid_input",
+				issues,
+			},
 		};
 	}
 }
@@ -113,19 +141,27 @@ function validateParams(
 	params: AskParams
 ):
 	| { ok: true; state: ReturnType<typeof createInitialState> }
-	| { ok: false; error: string } {
-	try {
-		return {
-			ok: true,
-			state: createInitialState(params),
-		};
-	} catch (error) {
+	| { ok: false; issues: AskValidationIssue[] } {
+	const issues = collectValidationIssues(params);
+	if (issues.length > 0) {
 		return {
 			ok: false,
-			error:
-				error instanceof Error ? error.message : "Invalid ask_user payload",
+			issues,
 		};
 	}
+
+	return {
+		ok: true,
+		state: createInitialState(params),
+	};
+}
+
+function formatValidationError(issues: AskValidationIssue[]): string {
+	const lines = [
+		"Invalid ask_user payload:",
+		...issues.map((issue) => `- ${issue.path}: ${issue.message}`),
+	];
+	return lines.join("\n");
 }
 
 function formatNonInteractiveMessage(

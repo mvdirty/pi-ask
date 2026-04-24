@@ -3,13 +3,25 @@ import type {
 	AskParams,
 	AskQuestion,
 	AskQuestionInput,
+	AskValidationIssue,
 } from "../types.ts";
 
 export function normalizeQuestions(params: AskParams): AskQuestion[] {
-	validateQuestions(params.questions);
+	const issues = collectValidationIssues(params);
+	if (issues.length > 0) {
+		throw new Error(issues[0]?.message ?? "Invalid ask_user payload");
+	}
 	return params.questions.map((question, index) =>
 		normalizeQuestion(question, index)
 	);
+}
+
+export function collectValidationIssues(
+	params: AskParams
+): AskValidationIssue[] {
+	const issues: AskValidationIssue[] = [];
+	validateQuestions(params.questions, issues);
+	return issues;
 }
 
 function normalizeQuestion(
@@ -20,7 +32,7 @@ function normalizeQuestion(
 		id: question.id.trim(),
 		label: question.label?.trim() || `Q${index + 1}`,
 		prompt: question.prompt.trim(),
-		type: question.type ?? "single",
+		type: normalizeQuestionType(question.type),
 		required: question.required ?? false,
 		options: question.options.map(normalizeOption),
 	};
@@ -35,43 +47,71 @@ function normalizeOption(option: AskOption): AskOption {
 	};
 }
 
-function validateQuestions(questions: AskParams["questions"]): void {
+function validateQuestions(
+	questions: AskParams["questions"],
+	issues: AskValidationIssue[]
+): void {
 	if (questions.length === 0) {
-		throw new Error("At least one question is required");
+		issues.push({
+			path: "questions",
+			message: "At least one question is required",
+		});
+		return;
 	}
 
 	const questionIds = new Set<string>();
 	for (const [questionIndex, question] of questions.entries()) {
-		validateQuestion(question, questionIndex, questionIds);
+		validateQuestion(question, questionIndex, questionIds, issues);
 	}
 }
 
 function validateQuestion(
 	question: AskQuestionInput,
 	questionIndex: number,
-	questionIds: Set<string>
+	questionIds: Set<string>,
+	issues: AskValidationIssue[]
 ): void {
 	const questionNumber = questionIndex + 1;
-	const questionId = question.id.trim();
-	const questionType = question.type ?? "single";
+	const questionPath = `questions[${questionIndex}]`;
+	const questionId = question.id?.trim();
+	const questionType = normalizeQuestionType(question.type);
+	assertValidQuestionType(
+		question.type,
+		`Question ${questionNumber}: invalid type ${JSON.stringify(question.type)}; expected "single", "multi", or "preview"`,
+		issues,
+		`${questionPath}.type`
+	);
 
-	assertNonEmpty(questionId, `Question ${questionNumber}: id is required`);
+	assertNonEmpty(
+		questionId,
+		`Question ${questionNumber}: id is required`,
+		issues,
+		`${questionPath}.id`
+	);
 	assertUnique(
 		questionIds,
 		questionId,
-		`Question ${questionNumber}: duplicate question id "${questionId}"`
+		`Question ${questionNumber}: duplicate question id "${questionId}"`,
+		issues,
+		`${questionPath}.id`
 	);
 	assertOptionalNonEmpty(
 		question.label,
-		`Question ${questionNumber}: label must not be empty`
+		`Question ${questionNumber}: label must not be empty`,
+		issues,
+		`${questionPath}.label`
 	);
 	assertNonEmpty(
-		question.prompt.trim(),
-		`Question ${questionNumber}: prompt is required`
+		question.prompt?.trim(),
+		`Question ${questionNumber}: prompt is required`,
+		issues,
+		`${questionPath}.prompt`
 	);
 	assertHasItems(
 		question.options,
-		`Question ${questionNumber}: at least one option is required`
+		`Question ${questionNumber}: at least one option is required`,
+		issues,
+		`${questionPath}.options`
 	);
 
 	const optionValues = new Set<string>();
@@ -81,7 +121,9 @@ function validateQuestion(
 			optionIndex,
 			optionValues,
 			questionNumber,
-			questionType
+			questionType,
+			issues,
+			`${questionPath}.options[${optionIndex}]`
 		);
 	}
 }
@@ -91,63 +133,123 @@ function validateOption(
 	optionIndex: number,
 	optionValues: Set<string>,
 	questionNumber: number,
-	questionType: AskQuestion["type"]
+	questionType: AskQuestion["type"],
+	issues: AskValidationIssue[],
+	optionPath: string
 ): void {
 	const optionNumber = optionIndex + 1;
 	const prefix = `Question ${questionNumber}, option ${optionNumber}`;
-	const optionValue = option.value.trim();
+	const optionValue = option.value?.trim();
 
-	assertNonEmpty(optionValue, `${prefix}: value is required`);
+	assertNonEmpty(
+		optionValue,
+		`${prefix}: value is required`,
+		issues,
+		`${optionPath}.value`
+	);
 	assertUnique(
 		optionValues,
 		optionValue,
-		`${prefix}: duplicate option value "${optionValue}"`
+		`${prefix}: duplicate option value "${optionValue}"`,
+		issues,
+		`${optionPath}.value`
 	);
-	assertNonEmpty(option.label.trim(), `${prefix}: label is required`);
+	assertNonEmpty(
+		option.label?.trim(),
+		`${prefix}: label is required`,
+		issues,
+		`${optionPath}.label`
+	);
 	assertOptionalNonEmpty(
 		option.description,
-		`${prefix}: description must not be empty`
+		`${prefix}: description must not be empty`,
+		issues,
+		`${optionPath}.description`
 	);
 	assertOptionalNonEmpty(
 		option.preview,
-		`${prefix}: preview must not be empty`
+		`${prefix}: preview must not be empty`,
+		issues,
+		`${optionPath}.preview`
 	);
 	if (questionType === "preview") {
 		assertNonEmpty(
 			option.preview?.trim(),
-			`${prefix}: preview questions require preview text for every option`
+			`${prefix}: preview questions require preview text for every option; add preview text or use type "single" instead`,
+			issues,
+			`${optionPath}.preview`
 		);
 	}
 }
 
-function assertHasItems(items: unknown[], errorMessage: string): void {
-	if (items.length === 0) {
-		throw new Error(errorMessage);
+function normalizeQuestionType(
+	value: AskQuestionInput["type"]
+): AskQuestion["type"] {
+	return value === "multi" || value === "preview" ? value : "single";
+}
+
+function assertValidQuestionType(
+	value: AskQuestionInput["type"],
+	errorMessage: string,
+	issues: AskValidationIssue[],
+	path: string
+): void {
+	if (
+		value !== undefined &&
+		value !== "single" &&
+		value !== "multi" &&
+		value !== "preview"
+	) {
+		issues.push({ path, message: errorMessage });
 	}
 }
 
-function assertNonEmpty(value: string | undefined, errorMessage: string): void {
+function assertHasItems(
+	items: unknown[],
+	errorMessage: string,
+	issues: AskValidationIssue[],
+	path: string
+): void {
+	if (items.length === 0) {
+		issues.push({ path, message: errorMessage });
+	}
+}
+
+function assertNonEmpty(
+	value: string | undefined,
+	errorMessage: string,
+	issues: AskValidationIssue[],
+	path: string
+): void {
 	if (!value) {
-		throw new Error(errorMessage);
+		issues.push({ path, message: errorMessage });
 	}
 }
 
 function assertOptionalNonEmpty(
 	value: string | undefined,
-	errorMessage: string
+	errorMessage: string,
+	issues: AskValidationIssue[],
+	path: string
 ): void {
 	if (value !== undefined && !value.trim()) {
-		throw new Error(errorMessage);
+		issues.push({ path, message: errorMessage });
 	}
 }
 
 function assertUnique(
 	seen: Set<string>,
-	value: string,
-	errorMessage: string
+	value: string | undefined,
+	errorMessage: string,
+	issues: AskValidationIssue[],
+	path: string
 ): void {
+	if (!value) {
+		return;
+	}
 	if (seen.has(value)) {
-		throw new Error(errorMessage);
+		issues.push({ path, message: errorMessage });
+		return;
 	}
 	seen.add(value);
 }

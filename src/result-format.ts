@@ -1,3 +1,4 @@
+import { ELABORATED_SUMMARY } from "./constants.ts";
 import type { AskResult } from "./types.ts";
 
 export function formatResultLines(
@@ -65,6 +66,28 @@ function formatQuestionNoteLine(
 	return mode === "summary"
 		? `${questionLabel} note: ${note}`
 		: `  note: ${note}`;
+}
+
+export function formatElaborationLines(
+	result: AskResult,
+	_options: { mode: "summary" | "render" }
+): string[] {
+	const items = result.elaboration?.items ?? [];
+	const lines = items.map((item) => {
+		if (item.target.kind === "question") {
+			return `User asked to elaborate on question ${quote(item.question.prompt)} with note ${quote(item.note)}`;
+		}
+		if (!("option" in item)) {
+			return `User asked to elaborate on question ${quote(item.question.prompt)} with note ${quote(item.note)}`;
+		}
+		return `User asked to elaborate on question ${quote(item.question.prompt)} option ${quote(item.option.label)} with note ${quote(item.note)}`;
+	});
+
+	return lines.length > 0 ? lines : [ELABORATED_SUMMARY];
+}
+
+function quote(value: string): string {
+	return JSON.stringify(value);
 }
 
 function formatOptionNoteLines(

@@ -8,7 +8,15 @@ const NON_INTERACTIVE_MESSAGE_RE =
 const FIRST_QUESTION_RE = /1\. Goal: What should I optimize for\?/;
 const SPEED_OPTION_RE = /- Speed \[speed\]/;
 const CUSTOM_OPTION_RE = /- Type your own \[custom\]/;
-const DUPLICATE_ID_RE = /duplicate question id "scope"/;
+const DUPLICATE_ID_RE =
+	/questions\[1\]\.id: Question 2: duplicate question id "scope"/;
+const PREVIEW_RULE_RE =
+	/questions\[0\]\.options\[0\]\.preview: Question 1, option 1: preview questions require preview text for every option; add preview text or use type "single" instead/;
+const MISSING_OPTION_VALUE_RE =
+	/questions\[0\]\.options\[0\]\.value: Question 1, option 1: value is required/;
+const EMPTY_QUESTIONS_RE = /questions: At least one question is required/;
+const INVALID_TYPE_RE =
+	/questions\[0\]\.type: Question 1: invalid type "grid"; expected "single", "multi", or "preview"/;
 const HAS_UI = "hasUI";
 const noop = () => {
 	// intentional test callback
@@ -65,6 +73,7 @@ test("ask tool returns pending questions in non-interactive mode", async () => {
 	);
 
 	assert.equal(result.details.cancelled, true);
+	assert.equal(result.details.mode, "submit");
 	assert.deepEqual(result.details.questions, [
 		{
 			id: "goal",
@@ -80,7 +89,7 @@ test("ask tool returns pending questions in non-interactive mode", async () => {
 	assert.match(result.content[0].text, CUSTOM_OPTION_RE);
 });
 
-test("ask tool rejects invalid payloads before UI opens", async () => {
+test("ask tool rejects invalid payloads before UI opens with structured issues", async () => {
 	const tool = registerMockTool();
 
 	const result = await tool.execute(
@@ -106,8 +115,148 @@ test("ask tool rejects invalid payloads before UI opens", async () => {
 	);
 
 	assert.equal(result.details.cancelled, true);
+	assert.equal(result.details.mode, "submit");
 	assert.equal(result.details.questions.length, 0);
+	assert.deepEqual(result.details.error, {
+		kind: "invalid_input",
+		issues: [
+			{
+				path: "questions[1].id",
+				message: 'Question 2: duplicate question id "scope"',
+			},
+		],
+	});
 	assert.match(result.content[0].text, DUPLICATE_ID_RE);
+});
+
+test("ask tool reports missing option values with structured issues", async () => {
+	const tool = registerMockTool();
+
+	const result = await tool.execute(
+		"call-1",
+		{
+			title: "Clarify",
+			questions: [
+				{
+					id: "api_style",
+					prompt: "Pick API style",
+					options: [{ label: "REST" } as never],
+				},
+			],
+		},
+		undefined,
+		noop,
+		makeCtx(true)
+	);
+
+	assert.equal(result.details.cancelled, true);
+	assert.deepEqual(result.details.error, {
+		kind: "invalid_input",
+		issues: [
+			{
+				path: "questions[0].options[0].value",
+				message: "Question 1, option 1: value is required",
+			},
+		],
+	});
+	assert.match(result.content[0].text, MISSING_OPTION_VALUE_RE);
+});
+
+test("ask tool reports empty questions with structured issues", async () => {
+	const tool = registerMockTool();
+
+	const result = await tool.execute(
+		"call-1",
+		{
+			title: "Clarify",
+			questions: [],
+		},
+		undefined,
+		noop,
+		makeCtx(true)
+	);
+
+	assert.equal(result.details.cancelled, true);
+	assert.deepEqual(result.details.error, {
+		kind: "invalid_input",
+		issues: [
+			{
+				path: "questions",
+				message: "At least one question is required",
+			},
+		],
+	});
+	assert.match(result.content[0].text, EMPTY_QUESTIONS_RE);
+});
+
+test("ask tool reports invalid question types with structured issues", async () => {
+	const tool = registerMockTool();
+
+	const result = await tool.execute(
+		"call-1",
+		{
+			title: "Clarify",
+			questions: [
+				{
+					id: "layout",
+					prompt: "Pick layout",
+					type: "grid" as never,
+					options: [{ value: "compact", label: "Compact" }],
+				},
+			],
+		},
+		undefined,
+		noop,
+		makeCtx(true)
+	);
+
+	assert.equal(result.details.cancelled, true);
+	assert.deepEqual(result.details.error, {
+		kind: "invalid_input",
+		issues: [
+			{
+				path: "questions[0].type",
+				message:
+					'Question 1: invalid type "grid"; expected "single", "multi", or "preview"',
+			},
+		],
+	});
+	assert.match(result.content[0].text, INVALID_TYPE_RE);
+});
+
+test("ask tool reports preview validation with structured issues", async () => {
+	const tool = registerMockTool();
+
+	const result = await tool.execute(
+		"call-1",
+		{
+			title: "Clarify",
+			questions: [
+				{
+					id: "layout",
+					prompt: "Pick layout",
+					type: "preview",
+					options: [{ value: "compact", label: "Compact" }],
+				},
+			],
+		},
+		undefined,
+		noop,
+		makeCtx(true)
+	);
+
+	assert.equal(result.details.cancelled, true);
+	assert.deepEqual(result.details.error, {
+		kind: "invalid_input",
+		issues: [
+			{
+				path: "questions[0].options[0].preview",
+				message:
+					'Question 1, option 1: preview questions require preview text for every option; add preview text or use type "single" instead',
+			},
+		],
+	});
+	assert.match(result.content[0].text, PREVIEW_RULE_RE);
 });
 
 test("ask tool transcript renderers summarize call and cancelled result", () => {
@@ -133,6 +282,7 @@ test("ask tool transcript renderers summarize call and cancelled result", () => 
 			content: [{ type: "text", text: "ignored" }],
 			details: {
 				cancelled: true,
+				mode: "submit",
 				questions: [],
 				answers: {},
 			},
@@ -141,4 +291,23 @@ test("ask tool transcript renderers summarize call and cancelled result", () => 
 		theme
 	).text;
 	assert.equal(resultText, "Cancelled");
+
+	const invalidText = tool.renderResult(
+		{
+			content: [{ type: "text", text: "ignored" }],
+			details: {
+				cancelled: true,
+				mode: "submit",
+				questions: [],
+				answers: {},
+				error: {
+					kind: "invalid_input",
+					issues: [],
+				},
+			},
+		},
+		undefined,
+		theme
+	).text;
+	assert.equal(invalidText, "Invalid input");
 });

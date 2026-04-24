@@ -26,7 +26,7 @@ import {
 	submitView,
 } from "./view.ts";
 
-const SUBMIT_ACTION_COUNT = 2;
+const SUBMIT_ACTION_COUNT = 3;
 
 export function createInitialState(params: {
 	title?: string;
@@ -42,6 +42,7 @@ export function createInitialState(params: {
 		answers: {},
 		completed: false,
 		cancelled: false,
+		mode: "submit",
 	};
 }
 
@@ -154,9 +155,13 @@ export function toggleCurrentMultiOption(state: AskState): AskState {
 
 export function confirmCurrentSelection(state: AskState): AskState {
 	if (isSubmitTab(state)) {
-		return state.activeSubmitActionIndex === 1
-			? { ...state, cancelled: true, completed: true }
-			: { ...state, completed: true };
+		if (state.activeSubmitActionIndex === 2) {
+			return { ...state, cancelled: true, completed: true };
+		}
+		if (state.activeSubmitActionIndex === 1) {
+			return { ...state, mode: "elaborate", completed: true };
+		}
+		return { ...state, mode: "submit", completed: true };
 	}
 
 	const question = getCurrentQuestion(state);
