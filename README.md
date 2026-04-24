@@ -1,6 +1,6 @@
 # @eko24ive/pi-ask
 
-`@eko24ive/pi-ask` adds an interactive `ask_user` clarification tool.
+`@eko24ive/pi-ask` is an ask tool that cares about your answers.
 
 It lets an agent pause, ask structured questions in a terminal UI, and continue with normalized answers instead of guessing.
 
@@ -18,24 +18,63 @@ You can also install from git:
 pi install git:github.com/eko24ive/pi-ask
 ```
 
-### Screenshots
-
-| | | |
-| --- | --- | --- |
-| ![](docs/media/ask-user-single.png) | ![](docs/media/ask-user-multi.png) | ![](docs/media/ask-user-preview.png) |
-| ![](docs/media/ask-user-notes.png) | ![](docs/media/ask-user-review.png) | |
-
 ## Features
 
 Once installed, this package gives the agent a native way to ask for clarification instead of guessing.
 
-- 🧭 **Multi-question flow** — gather several answers in one pass.
-- ✅ **Single + multi select** — support simple and additive choices.
-- 🪟 **Preview mode** — show richer options with a dedicated preview pane.
-- ✍️ **Custom answers** — users can choose `Type your own` and type inline.
-- 📝 **Notes** — add question-level or option-level context without breaking the flow.
-- 👀 **Submit screen** — check everything before submitting answers back to the agent.
-- ⌨️ **Fast keyboard UX** — number shortcuts, inline selection, notes, and submit navigation.
+- 🧭 Familiar ask-style interface: tabbed questions, single/multi select, and preview mode
+- ✍️ Inline free-form `Type your own` answers
+- 📝 Question-level and option-level notes
+- 👀 Review tab with `Submit`, `Elaborate`, and `Cancel`
+- 💬 Elaboration flow to capture note-based clarification before final submission
+- ⌨️ Fast keyboard-first interaction (also mobile-friendly in remote sessions)
+
+## Feature walkthrough
+
+### Multi-question flow (tabs)
+Move across several related questions in one ask flow.
+
+![Multi-question ask_user flow with tab navigation](docs/media/feature-multi-question-tabs.png)
+
+### Single-select question
+Pick one option when answers are mutually exclusive.
+
+![Single-select question with one selected option](docs/media/feature-single-select.png)
+
+### Multi-select question
+Choose multiple options when several answers apply.
+
+![Multi-select question with multiple selected options](docs/media/feature-multi-select.png)
+
+### Preview mode
+Use a dedicated preview pane when options need richer detail.
+
+![Preview question showing a dedicated preview pane](docs/media/feature-preview-pane.png)
+
+### Custom answer (`Type your own`)
+Capture free-form input inline without leaving the flow.
+
+![Inline custom answer input for Type your own option](docs/media/feature-custom-answer-input.png)
+
+### Option notes
+Attach clarification notes to a specific option (`n`).
+
+![Option note editor with note text for selected option](docs/media/feature-option-note.png)
+
+### Question notes
+Add notes at question level for broader context (`Shift+N`).
+
+![Question-level note editor with saved note](docs/media/feature-question-note.png)
+
+### Review tab — Submit
+Review all answers before returning them to the agent.
+
+![Review tab with Submit action highlighted](docs/media/feature-review-submit.png)
+
+### Review tab — Elaborate
+Ask the agent to elaborate on notes before finalizing choices.
+
+![Review tab with Elaborate action and expanded note preview](docs/media/feature-review-elaborate.png)
 
 ## Use
 
