@@ -177,9 +177,7 @@ function formatNonInteractiveMessage(
 		for (const option of question.options) {
 			lines.push(`   - ${option.label} [${option.value}]`);
 		}
-		if (question.type !== "preview") {
-			lines.push("   - Type your own [custom]");
-		}
+		lines.push("   - Type your own [custom]");
 	}
 
 	lines.push(

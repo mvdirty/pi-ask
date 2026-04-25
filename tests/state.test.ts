@@ -93,9 +93,13 @@ test("preview questions keep their type and option previews", () => {
 	assert.equal(state.questions[0].options[0].preview, "Example");
 	assert.equal(
 		getRenderableOptions(state.questions[0]).at(-1)?.isCustomOption,
-		undefined
+		true
 	);
-	assert.equal(getRenderableOptions(state.questions[0]).length, 1);
+	assert.equal(
+		getRenderableOptions(state.questions[0]).at(-1)?.label,
+		"Type your own"
+	);
+	assert.equal(getRenderableOptions(state.questions[0]).length, 2);
 });
 
 test("createInitialState rejects duplicate question ids", () => {
@@ -526,6 +530,31 @@ test("preview questions can store selected option notes for submission", () => {
 		optionNotes: {
 			spacious: "better scanability",
 		},
+	});
+});
+
+test("preview questions support custom answers", () => {
+	let state = createInitialState({
+		questions: [
+			{
+				id: "preview",
+				prompt: "Pick layout",
+				type: "preview",
+				options: [{ value: "compact", label: "Compact", preview: "A" }],
+			},
+		],
+	});
+
+	state = applyNumberShortcut(state, 2);
+	state = submitCustomAnswer(state, "Something else");
+
+	assert.deepEqual(toAskResult(state).answers.preview, {
+		values: ["Something else"],
+		labels: ["Something else"],
+		indices: [],
+		customText: "Something else",
+		note: undefined,
+		optionNotes: undefined,
 	});
 });
 

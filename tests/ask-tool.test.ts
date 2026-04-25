@@ -89,6 +89,31 @@ test("ask tool returns pending questions in non-interactive mode", async () => {
 	assert.match(result.content[0].text, CUSTOM_OPTION_RE);
 });
 
+test("ask tool includes custom answer fallback for preview questions", async () => {
+	const tool = registerMockTool();
+
+	const result = await tool.execute(
+		"call-1",
+		{
+			title: "Clarify",
+			questions: [
+				{
+					id: "layout",
+					label: "Layout",
+					prompt: "Which layout?",
+					type: "preview",
+					options: [{ value: "compact", label: "Compact", preview: "A" }],
+				},
+			],
+		},
+		undefined,
+		noop,
+		makeCtx(false)
+	);
+
+	assert.match(result.content[0].text, CUSTOM_OPTION_RE);
+});
+
 test("ask tool rejects invalid payloads before UI opens with structured issues", async () => {
 	const tool = registerMockTool();
 

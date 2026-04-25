@@ -32,13 +32,11 @@ export function getRenderableOptions(
 	const options: AskDisplayOption[] = question.options.map((option) => ({
 		...option,
 	}));
-	if (question.type !== "preview") {
-		options.push({
-			value: OTHER_OPTION_VALUE,
-			label: OTHER_OPTION_LABEL,
-			isCustomOption: true,
-		});
-	}
+	options.push({
+		value: OTHER_OPTION_VALUE,
+		label: OTHER_OPTION_LABEL,
+		isCustomOption: true,
+	});
 	return options;
 }
 

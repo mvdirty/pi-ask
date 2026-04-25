@@ -255,7 +255,11 @@ export function renderBox(
 
 export function renderPreviewPaneContent(
 	selectedOption:
-		| { label: string; description?: string; preview?: string }
+		| {
+				label: string;
+				description?: string;
+				preview?: string;
+		  }
 		| undefined,
 	theme: Theme,
 	width: number
@@ -271,6 +275,7 @@ export function renderPreviewPaneContent(
 		content.push({ text: selectedOption.description, color: "muted" });
 	}
 	content.push({ text: "", color: "dim" });
+
 	for (const previewLine of (selectedOption.preview ?? NO_PREVIEW_TEXT).split(
 		"\n"
 	)) {

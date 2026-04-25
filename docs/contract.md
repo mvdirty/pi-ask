@@ -37,8 +37,8 @@ This document defines the stable external behavior. It does not explain internal
 - `type` defaults to `single`
 - `required` defaults to `false`
 - `required` is metadata only; it never blocks submission
-- preview questions require preview text for every option; option descriptions do not satisfy this requirement, and invalid preview payloads report a fix hint to add preview text or switch to `type: "single"`
-- non-`preview` questions get an internal `Type your own` option
+- preview questions require preview text for every declared option; option descriptions do not satisfy this requirement, and invalid preview payloads report a fix hint to add preview text or switch to `type: "single"`
+- all questions get an internal `Type your own` option
 
 ## Output
 
@@ -190,7 +190,7 @@ This document defines the stable external behavior. It does not explain internal
 
 - tabbed multi-question flow
 - single-select, multi-select, and preview questions
-- inline free-form answers for non-preview questions
+- inline free-form answers for all question types
 - pi-style `@` file path autocomplete inside free-form answer and note editors
 - question notes via `Shift+N`
 - option notes via `n`

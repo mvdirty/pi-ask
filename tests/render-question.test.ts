@@ -154,3 +154,61 @@ test("selected multiline custom option renders full editor block", () => {
 	assert(lines.some((line) => line.includes("second line")));
 	assert(!lines.some((line) => line.includes("first line second line")));
 });
+
+test("preview questions also show the custom answer option", () => {
+	const state = createInitialState({
+		questions: [
+			{
+				id: "q1",
+				prompt: "Pick one",
+				type: "preview",
+				options: [{ value: "a", label: "A", preview: "Preview A" }],
+			},
+		],
+	});
+
+	const lines: string[] = [];
+	renderQuestionScreen({
+		editor: mockEditor(),
+		lines,
+		options: getRenderableOptions(state.questions[0]),
+		question: state.questions[0],
+		state,
+		theme: mockTheme(),
+		width: 80,
+	});
+
+	assert(lines.some((line) => line.includes("Type your own")));
+});
+
+test("preview custom option reuses the normal inline editor", () => {
+	let state = createInitialState({
+		questions: [
+			{
+				id: "q1",
+				prompt: "Pick one",
+				type: "preview",
+				options: [{ value: "a", label: "A", preview: "Preview A" }],
+			},
+		],
+	});
+	state = applyNumberShortcut(state, 2);
+
+	const lines: string[] = [];
+	renderQuestionScreen({
+		editor: mockEditor("", ["┌────┐", "", "└────┘"]),
+		lines,
+		options: getRenderableOptions(state.questions[0]),
+		question: state.questions[0],
+		state,
+		theme: mockTheme(),
+		width: 80,
+	});
+
+	assert(lines.some((line) => line.includes("Type your own")));
+	assert(lines.some((line) => line.includes("Type answer...")));
+	const optionIndex = lines.findIndex((line) => line.includes("Type your own"));
+	const inputIndex = lines.findIndex((line) => line.includes("Type answer..."));
+	assert.equal(inputIndex, optionIndex + 1);
+	assert(!lines.some((line) => line.includes("asdasddasdasdasdere")));
+});

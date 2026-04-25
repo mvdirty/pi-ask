@@ -124,7 +124,9 @@ function renderPreviewQuestion(context: QuestionRenderContext) {
 	const selectedOption = options[state.activeOptionIndex];
 	const answer = getAnswer(state, question.id);
 
-	if (width >= UI_DIMENSIONS.previewWideMinWidth && options.length > 0) {
+	if (selectedOption?.isCustomOption) {
+		renderPreviewOptionList(state, options, theme, width, answer).forEach(add);
+	} else if (width >= UI_DIMENSIONS.previewWideMinWidth && options.length > 0) {
 		renderWidePreviewLayout(
 			add,
 			state,
@@ -151,7 +153,8 @@ function renderPreviewQuestion(context: QuestionRenderContext) {
 		questionId: question.id,
 		answer,
 		option: selectedOption,
-		withGap: true,
+		selected: true,
+		withGap: !selectedOption?.isCustomOption,
 	});
 }
 
