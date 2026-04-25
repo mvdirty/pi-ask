@@ -2,8 +2,8 @@ import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { SUBMIT_CHOICES } from "../constants.ts";
 import { serializeAnswer } from "../state/answers.ts";
 import type { AskResult, AskState, AskStateAnswer } from "../types.ts";
-import { UI_TEXT } from "./constants.ts";
-import { pushWrappedText } from "./render-helpers.ts";
+import { UI_DIMENSIONS, UI_TEXT } from "./constants.ts";
+import { mergeColumns, pushWrappedText } from "./render-helpers.ts";
 import type { Theme } from "./render-types.ts";
 
 type ReviewAnswer = AskResult["answers"][string] & {
@@ -19,10 +19,51 @@ export function renderSubmitScreen(
 	theme: Theme,
 	width: number
 ) {
+	const showAllNotes = state.activeSubmitActionIndex === 1;
+
+	if (shouldUseWideSubmitLayout(width)) {
+		const leftWidth = UI_DIMENSIONS.submitActionsWidth;
+		const rightWidth = Math.max(1, width - leftWidth - 2);
+		const reviewLines = renderSubmitReviewLines(
+			state,
+			theme,
+			rightWidth,
+			showAllNotes
+		);
+		const actionLines = renderSubmitActionLines(state, theme, leftWidth);
+		for (const line of mergeColumns(
+			actionLines,
+			reviewLines,
+			leftWidth,
+			width
+		)) {
+			lines.push(line);
+		}
+		return;
+	}
+
+	const reviewLines = renderSubmitReviewLines(
+		state,
+		theme,
+		width,
+		showAllNotes
+	);
+	const actionLines = renderSubmitActionLines(state, theme, width);
+	lines.push(...reviewLines);
+	lines.push("");
+	lines.push(...actionLines);
+}
+
+function renderSubmitReviewLines(
+	state: AskState,
+	theme: Theme,
+	width: number,
+	showAllNotes: boolean
+): string[] {
+	const lines: string[] = [];
 	pushWrappedText(lines, UI_TEXT.reviewTitle, width, theme, "accent", " ", " ");
 	lines.push("");
 
-	const showAllNotes = state.activeSubmitActionIndex === 1;
 	for (let index = 0; index < state.questions.length; index++) {
 		const question = state.questions[index];
 		renderSubmittedQuestion(
@@ -37,8 +78,21 @@ export function renderSubmitScreen(
 		}
 	}
 
-	lines.push("");
+	return lines;
+}
+
+function renderSubmitActionLines(
+	state: AskState,
+	theme: Theme,
+	width: number
+): string[] {
+	const lines: string[] = [];
 	renderSubmitActions(lines, state, theme, width);
+	return lines;
+}
+
+function shouldUseWideSubmitLayout(width: number): boolean {
+	return width >= UI_DIMENSIONS.submitWideMinWidth;
 }
 
 function renderSubmittedQuestion(

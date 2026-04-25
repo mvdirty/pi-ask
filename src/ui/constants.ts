@@ -9,6 +9,8 @@ export const UI_DIMENSIONS = {
 	previewLeftMinWidth: 22,
 	previewLeftMaxWidth: 34,
 	previewLeftRatio: 0.34,
+	submitWideMinWidth: 64,
+	submitActionsWidth: 24,
 } as const;
 
 export const UI_TEXT = {

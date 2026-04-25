@@ -45,6 +45,61 @@ test("submit screen uses shorter action labels without extra prompt text", () =>
 	assert(!lines.some((line) => line.includes("1. Submit answers")));
 });
 
+test("submit screen uses side-by-side layout on wide screens", () => {
+	const state = createInitialState({
+		questions: [
+			{
+				id: "q1",
+				label: "Color",
+				prompt: "Pick one color.",
+				options: [{ value: "blue", label: "Blue" }],
+			},
+		],
+	});
+
+	const lines: string[] = [];
+	renderSubmitScreen(lines, state, mockTheme(), 120);
+
+	assert(
+		lines.some(
+			(line) => line.includes("1. Submit") && line.includes("Review answers")
+		)
+	);
+	assert(
+		lines.some((line) => line.includes("3. Cancel") && line.includes("Color"))
+	);
+});
+
+test("submit screen stacks review above actions on narrow screens", () => {
+	const state = createInitialState({
+		questions: [
+			{
+				id: "q1",
+				label: "Color",
+				prompt: "Pick one color.",
+				options: [{ value: "blue", label: "Blue" }],
+			},
+		],
+	});
+
+	const lines: string[] = [];
+	renderSubmitScreen(lines, state, mockTheme(), 50);
+
+	const reviewIndex = lines.findIndex((line) =>
+		line.includes("Review answers")
+	);
+	const actionIndex = lines.findIndex((line) => line.includes("1. Submit"));
+
+	assert.notEqual(reviewIndex, -1);
+	assert.notEqual(actionIndex, -1);
+	assert(reviewIndex < actionIndex);
+	assert(
+		!lines.some(
+			(line) => line.includes("1. Submit") && line.includes("Review answers")
+		)
+	);
+});
+
 test("submit screen shows notes only for answered questions in submit mode", () => {
 	let state = createInitialState({
 		questions: [
@@ -72,7 +127,7 @@ test("submit screen shows notes only for answered questions in submit mode", () 
 	state = saveNote(state, "Second note");
 
 	const lines: string[] = [];
-	renderSubmitScreen(lines, state, mockTheme(), 80);
+	renderSubmitScreen(lines, state, mockTheme(), 140);
 
 	const firstQuestionIndex = lines.findIndex((line) =>
 		line.includes("<text>Single</text>")
@@ -99,7 +154,7 @@ test("submit screen shows notes only for answered questions in submit mode", () 
 	assert(optionNoteIndex > firstAnswerIndex);
 	assert(lines[firstQuestionNoteIndex]?.startsWith("     "));
 	assert(lines[optionNoteIndex]?.startsWith("     "));
-	assert.equal(lines[secondQuestionIndex - 1], "");
+	assert.equal(lines[secondQuestionIndex - 1]?.trim(), "");
 	assert(
 		lines.some((line) => line.includes("<syntaxString>Note:</syntaxString>"))
 	);
@@ -178,7 +233,7 @@ test("submit screen renders multi-select option notes under their related answer
 	state = saveNote(state, "Second note");
 
 	const lines: string[] = [];
-	renderSubmitScreen(lines, state, mockTheme(), 80);
+	renderSubmitScreen(lines, state, mockTheme(), 140);
 
 	const firstAnswerIndex = lines.findIndex((line) =>
 		line.includes("→ Follow-up action")
