@@ -25,6 +25,7 @@ Once installed, this package gives the agent a native way to ask for clarificati
 
 - 🧭 Familiar ask-style interface: tabbed questions, single/multi select, and preview mode
 - ✍️ Inline free-form `Type your own` answers
+- 📎 Native pi-style `@` file references inside answer and note editors
 - 📝 Question-level and option-level notes
 - 👀 Review tab with `Submit`, `Elaborate`, and `Cancel`
 - 💬 Elaboration flow to capture note-based clarification before final submission
@@ -56,6 +57,11 @@ Use a dedicated preview pane when options need richer detail.
 Capture free-form input inline without leaving the flow.
 
 ![Inline custom answer input for Type your own option](docs/media/feature-custom-answer-input.png)
+
+### Native `@` file references
+Use pi-style `@` file path autocomplete inside free-form answers and note editors.
+
+![Native pi-style @ file references inside the ask flow](docs/media/feature-at-file-mentions.png)
 
 ### Option notes
 Attach clarification notes to a specific option (`n`).
@@ -105,7 +111,7 @@ Ask the agent to elaborate on notes before finalizing choices.
 
 After installation, the extension registers the `ask_user` tool.
 
-Agents can auto-discover and call it when they need clarification instead of guessing. In interactive sessions, it opens a terminal UI flow for structured answers and returns normalized answers back to the agent.
+Agents can auto-discover and call it when they need clarification instead of guessing. In interactive sessions, it opens a terminal UI flow for structured answers, supports native pi-style `@` file references while typing answers or notes, and returns normalized answers back to the agent.
 
 This package also bundles the `ask-user` skill profile from `skills/ask-user/SKILL.md`. It reinforces when to use the tool, is enabled by default when installed, and can be disabled via `pi config`. The skill was inspired by https://github.com/edlsh/pi-ask-user.
 
