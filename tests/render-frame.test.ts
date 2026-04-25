@@ -3,20 +3,6 @@ import test from "node:test";
 import { createInitialState } from "../src/state/create.ts";
 import { renderAskScreen } from "../src/ui/render.ts";
 
-function mockTheme() {
-	return {
-		fg(color: string, text: string) {
-			return `<${color}>${text}</${color}>`;
-		},
-		bg(color: string, text: string) {
-			return `{${color}}${text}{/${color}}`;
-		},
-		bold(text: string) {
-			return text;
-		},
-	} as never;
-}
-
 function mockEditor() {
 	return {
 		getText() {
@@ -42,7 +28,7 @@ function plainTheme() {
 	} as never;
 }
 
-test("tab strip always shows dimmed framing arrows on wide screens", () => {
+test("wide header keeps all tabs and framing arrows on the tab row", () => {
 	const state = createInitialState({
 		title: "Demo",
 		questions: [
@@ -63,13 +49,12 @@ test("tab strip always shows dimmed framing arrows on wide screens", () => {
 
 	const lines = renderAskScreen({
 		state,
-		theme: mockTheme(),
+		theme: plainTheme(),
 		width: 120,
 		editor: mockEditor(),
 	});
 
-	assert(lines.some((line) => line.includes("<dim>← </dim>")));
-	assert(lines.some((line) => line.includes("<success> ✔ Submit </success>")));
+	assert.equal(lines[3], " ←  ☐ One   ☐ Two   ✔ Submit  →");
 });
 
 test("narrow tab strip keeps active middle tab visible", () => {
@@ -117,10 +102,7 @@ test("narrow tab strip keeps active middle tab visible", () => {
 		editor: mockEditor(),
 	});
 
-	const tabLine = lines.find((line) => line.includes("← "));
-	assert.ok(tabLine);
-	assert(tabLine.includes("Three"));
-	assert(!tabLine.includes("One"));
+	assert.equal(lines[3], " ←  ☐ Three   ☐ Four  →");
 });
 
 test("narrow tab strip keeps submit tab visible when active", () => {
@@ -157,10 +139,7 @@ test("narrow tab strip keeps submit tab visible when active", () => {
 		editor: mockEditor(),
 	});
 
-	const tabLine = lines.find((line) => line.includes("Submit"));
-	assert.ok(tabLine);
-	assert(tabLine.includes("Submit"));
-	assert(tabLine.includes("←") || tabLine.includes("→"));
+	assert.equal(lines[3], " ←  ✔ Submit  →");
 });
 
 test("tab strip avoids truncation at narrow boundary widths", () => {
@@ -201,23 +180,26 @@ test("tab strip avoids truncation at narrow boundary widths", () => {
 	});
 	state.activeTabIndex = 2;
 
-	for (const width of [28, 29, 30, 31, 32]) {
+	const expectedByWidth = new Map([
+		[28, " ←  ☐ Three   ☐ Four  →"],
+		[29, " ←  ☐ Three   ☐ Four  →"],
+		[30, " ←  ☐ Three   ☐ Four  →"],
+		[31, " ←  ☐ Two   ☐ Three   ☐ Four  →"],
+		[32, " ←  ☐ Two   ☐ Three   ☐ Four  →"],
+	]);
+
+	for (const [width, expected] of expectedByWidth) {
 		const lines = renderAskScreen({
 			state,
 			theme: plainTheme(),
 			width,
 			editor: mockEditor(),
 		});
-		const tabLine = lines.find((line) => line.includes("← "));
-		assert.ok(tabLine);
-		assert(tabLine.includes("Three"));
-		assert(!tabLine.includes("..."));
-		assert(!tabLine.includes("Fou..."));
-		assert(!tabLine.includes("Fi..."));
+		assert.equal(lines[3], expected);
 	}
 });
 
-test("footer hints wrap on narrow screens instead of truncating", () => {
+test("footer hints wrap into exact lines on narrow screens", () => {
 	const state = createInitialState({
 		questions: [
 			{
@@ -237,12 +219,15 @@ test("footer hints wrap on narrow screens instead of truncating", () => {
 		editor: mockEditor(),
 	});
 
-	assert(lines.some((line) => line.includes("Space toggle")));
-	assert(lines.some((line) => line.includes("Enter continue")));
-	assert(lines.some((line) => line.includes("N/Shift+N note")));
+	assert.deepEqual(lines.slice(-5, -1), [
+		"Space toggle",
+		"Enter continue",
+		"N/Shift+N note",
+		"Esc dismiss",
+	]);
 });
 
-test("footer keeps earlier hint chunks when later chunks wrap", () => {
+test("footer keeps earlier hint chunk on the first wrapped line", () => {
 	const state = createInitialState({
 		questions: [
 			{
@@ -261,6 +246,10 @@ test("footer keeps earlier hint chunks when later chunks wrap", () => {
 		editor: mockEditor(),
 	});
 
-	assert(lines.some((line) => line.includes("⇆ tab · ↑↓ select")));
-	assert(lines.some((line) => line.includes("Enter confirm")));
+	assert.equal(lines.at(-5), " ⇆ tab · ↑↓ select");
+	assert.deepEqual(lines.slice(-4, -1), [
+		"Enter confirm",
+		"N/Shift+N note",
+		"Esc dismiss",
+	]);
 });

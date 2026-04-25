@@ -24,7 +24,7 @@ function plainTheme() {
 	} as never;
 }
 
-test("submit screen uses shorter action labels without extra prompt text", () => {
+test("submit screen renders the compact action labels without extra prompt copy", () => {
 	const state = createInitialState({
 		questions: [
 			{
@@ -44,14 +44,14 @@ test("submit screen uses shorter action labels without extra prompt text", () =>
 		UI_DIMENSIONS.submitWideMinWidth + 16
 	);
 
-	assert(!lines.some((line) => line.includes("Submit answers?")));
-	assert(lines.some((line) => line.includes("1. Submit")));
-	assert(lines.some((line) => line.includes("2. Elaborate")));
-	assert(lines.some((line) => line.includes("3. Cancel")));
-	assert(!lines.some((line) => line.includes("1. Submit answers")));
+	assert.equal(lines[0], "❯ 1. Submit      Review answers");
+	assert.equal(lines[1], "  2. Elaborate  ");
+	assert.equal(lines[2], "  3. Cancel      Single");
+	assert(!lines.join("\n").includes("Submit answers?"));
+	assert(!lines.join("\n").includes("Submit answers"));
 });
 
-test("submit screen uses side-by-side layout on wide screens", () => {
+test("submit screen keeps review and actions grouped side by side on wide screens", () => {
 	const state = createInitialState({
 		questions: [
 			{
@@ -71,14 +71,12 @@ test("submit screen uses side-by-side layout on wide screens", () => {
 		UI_DIMENSIONS.submitWideMinWidth + 16
 	);
 
-	assert(
-		lines.some(
-			(line) => line.includes("1. Submit") && line.includes("Review answers")
-		)
-	);
-	assert(
-		lines.some((line) => line.includes("3. Cancel") && line.includes("Color"))
-	);
+	assert.deepEqual(lines, [
+		"❯ 1. Submit      Review answers",
+		"  2. Elaborate  ",
+		"  3. Cancel      Color",
+		"                   → unanswered",
+	]);
 });
 
 test("submit screen stacks review above actions on narrow screens", () => {
@@ -101,19 +99,16 @@ test("submit screen stacks review above actions on narrow screens", () => {
 		UI_DIMENSIONS.submitWideMinWidth - 14
 	);
 
-	const reviewIndex = lines.findIndex((line) =>
-		line.includes("Review answers")
-	);
-	const actionIndex = lines.findIndex((line) => line.includes("1. Submit"));
-
-	assert.notEqual(reviewIndex, -1);
-	assert.notEqual(actionIndex, -1);
-	assert(reviewIndex < actionIndex);
-	assert(
-		!lines.some(
-			(line) => line.includes("1. Submit") && line.includes("Review answers")
-		)
-	);
+	assert.deepEqual(lines, [
+		" Review answers",
+		"",
+		" Color",
+		"   → unanswered",
+		"",
+		"❯ 1. Submit",
+		"  2. Elaborate",
+		"  3. Cancel",
+	]);
 });
 
 test("submit screen shows notes only for answered questions in submit mode", () => {
@@ -280,7 +275,7 @@ test("submit screen renders multi-select option notes under their related answer
 	assert(secondAnswerIndex < secondNoteIndex);
 });
 
-test("submit action column fits all action labels at the wide breakpoint", () => {
+test("submit action column keeps all three actions on consecutive rows at the wide breakpoint", () => {
 	const state = createInitialState({
 		questions: [
 			{
@@ -300,12 +295,8 @@ test("submit action column fits all action labels at the wide breakpoint", () =>
 		UI_DIMENSIONS.submitWideMinWidth
 	);
 
-	assert(
-		lines.some(
-			(line) => line.includes("1. Submit") && line.includes("Review answers")
-		)
-	);
-	assert(lines.some((line) => line.includes("2. Elaborate")));
-	assert(lines.some((line) => line.includes("3. Cancel")));
-	assert(!lines.some((line) => line.includes("Elaborat\n")));
+	assert.equal(lines[0], "❯ 1. Submit      Review answers");
+	assert.equal(lines[1], "  2. Elaborate  ");
+	assert.equal(lines[2], "  3. Cancel      Color");
+	assert.equal(lines[3], "                   → unanswered");
 });

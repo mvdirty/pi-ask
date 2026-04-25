@@ -212,7 +212,6 @@ function wrapDelimitedFooterHints(footer: string, width: number): string[] {
 			lines.push(...wrappedChunk);
 			return lines;
 		}
-		lines.push(current);
 		lines.push(...wrappedChunk);
 		return lines;
 	}, []);
