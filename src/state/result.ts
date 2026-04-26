@@ -15,11 +15,23 @@ import type {
 } from "../types.ts";
 import {
 	cloneResultAnswer,
+	getExtraOptionNotes,
+	hasAnswerNotes,
 	isAnswerAnswered,
 	isAnswerEmpty,
 	isOptionSelected,
+	isResultAnswerCommitted,
+	isResultAnswerEmpty,
 	serializeAnswer,
 } from "./answers.ts";
+import { getQuestionOptionByValue } from "./selectors.ts";
+
+export type ReviewAnswer = AskResult["answers"][string] & {
+	extraOptionNotes?: Array<{
+		label: string;
+		note: string;
+	}>;
+};
 
 export function toAskResult(state: AskState): AskResult {
 	const answers = Object.fromEntries(
@@ -29,8 +41,8 @@ export function toAskResult(state: AskState): AskResult {
 			)
 			.filter(([, answer]) =>
 				state.mode === "elaborate"
-					? isSerializedAnswerCommitted(answer)
-					: !isSerializedAnswerEmpty(answer)
+					? isResultAnswerCommitted(answer)
+					: !isResultAnswerEmpty(answer)
 			)
 	);
 
@@ -72,19 +84,6 @@ export function hasAnswerContent(state: AskState, questionId: string): boolean {
 	return !!answer && !isAnswerEmpty(answer);
 }
 
-function isSerializedAnswerEmpty(
-	answer: AskResult["answers"][string]
-): boolean {
-	return (
-		answer.values.length === 0 &&
-		answer.labels.length === 0 &&
-		answer.indices.length === 0 &&
-		!answer.customText &&
-		!answer.note &&
-		(!answer.optionNotes || Object.keys(answer.optionNotes).length === 0)
-	);
-}
-
 function serializeContinuation(
 	state: AskState,
 	answers: AskResult["answers"]
@@ -95,7 +94,7 @@ function serializeContinuation(
 
 	for (const question of state.questions) {
 		const answer = state.answers[question.id];
-		const hasClarificationNeed = !!(answer?.note || answer?.optionNotes);
+		const hasClarificationNeed = hasAnswerNotes(answer);
 		const committedAnswer = answers[question.id];
 		const answered = !!committedAnswer;
 
@@ -138,7 +137,7 @@ function serializeElaborationItemsForQuestion(
 	question: AskState["questions"][number],
 	answer: AskStateAnswer | undefined
 ): AskElaborationPayload["items"] {
-	if (!(answer?.note || answer?.optionNotes)) {
+	if (!(answer && hasAnswerNotes(answer))) {
 		return [];
 	}
 
@@ -158,9 +157,7 @@ function serializeElaborationItemsForQuestion(
 	}
 
 	for (const [value, note] of Object.entries(answer.optionNotes ?? {})) {
-		const option = question.options.find(
-			(candidate) => candidate.value === value
-		);
+		const option = getQuestionOptionByValue(question, value);
 		if (!(option && note)) {
 			continue;
 		}
@@ -212,13 +209,47 @@ function toCommittedResultAnswer(
 	return cloneResultAnswer(serializeAnswer(answer));
 }
 
-function isSerializedAnswerCommitted(
-	answer: AskResult["answers"][string]
-): boolean {
+export function toReviewAnswer(
+	question: AskState["questions"][number],
+	answer: AskStateAnswer | undefined,
+	showAllNotes: boolean
+): ReviewAnswer | undefined {
+	if (!answer) {
+		return;
+	}
+
+	const serialized = serializeAnswer(answer);
+	const hasCommittedAnswer = isResultAnswerCommitted(serialized);
+	if (!showAllNotes) {
+		return hasCommittedAnswer ? serialized : undefined;
+	}
+
+	const extraOptionNotes = getExtraOptionNotes({
+		answer,
+		questionOptions: question.options,
+		selectedValues: serialized.values,
+	});
+	if (
+		!(hasCommittedAnswer || serialized.note) &&
+		extraOptionNotes.length === 0
+	) {
+		return;
+	}
+
+	return {
+		...serialized,
+		extraOptionNotes:
+			extraOptionNotes.length > 0 ? extraOptionNotes : undefined,
+	};
+}
+
+export function shouldRenderAnswersIndividually(answer: ReviewAnswer): boolean {
+	if (!answer.labels.length) {
+		return false;
+	}
+
 	return (
-		answer.values.length > 0 ||
-		answer.labels.length > 0 ||
-		answer.indices.length > 0 ||
-		!!answer.customText
+		answer.labels.length > 1 ||
+		Boolean(answer.optionNotes && Object.keys(answer.optionNotes).length > 0)
 	);
 }

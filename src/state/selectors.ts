@@ -7,6 +7,12 @@ import type {
 } from "../types.ts";
 import { isAnswerAnswered } from "./answers.ts";
 
+const CUSTOM_OPTION: AskDisplayOption = {
+	value: OTHER_OPTION_VALUE,
+	label: OTHER_OPTION_LABEL,
+	isCustomOption: true,
+};
+
 export function getCurrentQuestion(state: AskState): AskQuestion | undefined {
 	return state.questions[state.activeTabIndex];
 }
@@ -28,16 +34,7 @@ export function getRenderableOptions(
 	if (!question) {
 		return [];
 	}
-
-	const options: AskDisplayOption[] = question.options.map((option) => ({
-		...option,
-	}));
-	options.push({
-		value: OTHER_OPTION_VALUE,
-		label: OTHER_OPTION_LABEL,
-		isCustomOption: true,
-	});
-	return options;
+	return [...question.options, CUSTOM_OPTION];
 }
 
 export function getCurrentOption(
@@ -46,6 +43,13 @@ export function getCurrentOption(
 	return getRenderableOptions(getCurrentQuestion(state))[
 		state.activeOptionIndex
 	];
+}
+
+export function getQuestionOptionByValue(
+	question: AskQuestion,
+	optionValue: string
+) {
+	return question.options.find((option) => option.value === optionValue);
 }
 
 export function getAnswer(

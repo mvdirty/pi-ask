@@ -1,4 +1,5 @@
 import { ELABORATED_SUMMARY } from "./constants.ts";
+import { isCustomOnlyAnswer } from "./state/answers.ts";
 import type { AskResult } from "./types.ts";
 
 export function formatResultLines(
@@ -49,10 +50,6 @@ function formatAnswerLine(
 		return `✓ ${questionLabel}: (wrote) ${answerText}`;
 	}
 	return `✓ ${questionLabel}: ${answerText}`;
-}
-
-function isCustomOnlyAnswer(answer: AskResult["answers"][string]): boolean {
-	return answer.indices.length === 0 && !!answer.customText;
 }
 
 function formatQuestionNoteLine(

@@ -10,6 +10,13 @@ import {
 	toggleSelection,
 } from "./answers.ts";
 import {
+	cancelFlow as cancelFlowBase,
+	createInitialState as createInitialStateBase,
+	dismissFlow as dismissFlowBase,
+	moveOption as moveOptionBase,
+	moveTab as moveTabBase,
+} from "./navigation.ts";
+import {
 	getAnswer,
 	getCurrentOption,
 	getCurrentQuestion,
@@ -19,7 +26,6 @@ import {
 } from "./selectors.ts";
 import {
 	inputView,
-	isEditingView,
 	navigateView,
 	optionNoteView,
 	questionNoteView,
@@ -32,26 +38,31 @@ export function createInitialState(params: {
 	title?: string;
 	questions: AskState["questions"];
 }): AskState {
-	return {
-		title: params.title,
-		questions: params.questions,
-		activeTabIndex: 0,
-		activeOptionIndex: 0,
-		activeSubmitActionIndex: 0,
-		view: navigateView(),
-		answers: {},
-		completed: false,
-		cancelled: false,
-		mode: "submit",
-	};
+	return createInitialStateBase(params);
+}
+
+export function moveTab(state: AskState, delta: number): AskState {
+	return moveTabBase(state, delta);
+}
+
+export function moveOption(state: AskState, delta: number): AskState {
+	return moveOptionBase(state, delta);
+}
+
+export function cancelFlow(state: AskState): AskState {
+	return cancelFlowBase(state);
+}
+
+export function dismissFlow(state: AskState): AskState {
+	return dismissFlowBase(state);
 }
 
 export function reduceAskState(state: AskState, action: AskAction): AskState {
 	switch (action.type) {
 		case "MOVE_TAB":
-			return moveTabBy(state, action.delta);
+			return moveTabBase(state, action.delta);
 		case "MOVE_OPTION":
-			return moveOptionBy(state, action.delta);
+			return moveOptionBase(state, action.delta);
 		case "OPEN_INPUT":
 			return setView(state, inputView(action.questionId));
 		case "OPEN_QUESTION_NOTE":
@@ -72,24 +83,10 @@ export function reduceAskState(state: AskState, action: AskAction): AskState {
 		case "SAVE_NOTE":
 			return saveNoteValue(state, action.value);
 		case "CANCEL":
-			return cancelFlow(state);
+			return cancelFlowBase(state);
 		default:
 			return state;
 	}
-}
-
-export function moveTab(state: AskState, delta: number): AskState {
-	return reduceAskState(state, {
-		type: "MOVE_TAB",
-		delta: delta < 0 ? -1 : 1,
-	});
-}
-
-export function moveOption(state: AskState, delta: number): AskState {
-	return reduceAskState(state, {
-		type: "MOVE_OPTION",
-		delta: delta < 0 ? -1 : 1,
-	});
 }
 
 export function enterInputMode(state: AskState, questionId: string): AskState {
@@ -116,37 +113,7 @@ export function enterOptionNoteMode(
 }
 
 export function toggleCurrentOption(state: AskState): AskState {
-	const question = getCurrentQuestion(state);
-	if (!question) {
-		return state;
-	}
-
-	const option = getCurrentOption(state);
-	if (!option) {
-		return state;
-	}
-	if (option.isCustomOption) {
-		return setView(state, inputView(question.id));
-	}
-
-	if (question.type === "multi") {
-		return updateAnswer(state, question.id, (answer) =>
-			toggleSelection(answer, option, state.activeOptionIndex)
-		);
-	}
-
-	return updateAnswer(state, question.id, (answer) => {
-		const isSelected = answer.selected.some(
-			(selection) => selection.value === option.value
-		);
-		if (isSelected) {
-			return {
-				...answer,
-				selected: [],
-			};
-		}
-		return setSingleSelection(answer, option, state.activeOptionIndex);
-	});
+	return activateCurrentOption(state, "toggle");
 }
 
 export function toggleCurrentMultiOption(state: AskState): AskState {
@@ -155,36 +122,9 @@ export function toggleCurrentMultiOption(state: AskState): AskState {
 
 export function confirmCurrentSelection(state: AskState): AskState {
 	if (isSubmitTab(state)) {
-		if (state.activeSubmitActionIndex === 2) {
-			return { ...state, cancelled: true, completed: true };
-		}
-		if (state.activeSubmitActionIndex === 1) {
-			return { ...state, mode: "elaborate", completed: true };
-		}
-		return { ...state, mode: "submit", completed: true };
+		return completeSubmitAction(state);
 	}
-
-	const question = getCurrentQuestion(state);
-	const option = getCurrentOption(state);
-	if (!(question && option)) {
-		return state;
-	}
-
-	if (question.type === "multi") {
-		if (option.isCustomOption) {
-			return setView(state, inputView(question.id));
-		}
-		return advanceToNextTab(state);
-	}
-
-	if (option.isCustomOption) {
-		return setView(state, inputView(question.id));
-	}
-
-	const nextState = updateAnswer(state, question.id, (answer) =>
-		setSingleSelection(answer, option, state.activeOptionIndex)
-	);
-	return advanceToNextTab(nextState);
+	return activateCurrentOption(state, "confirm");
 }
 
 export function applyNumberShortcut(state: AskState, digit: number): AskState {
@@ -203,31 +143,13 @@ export function applyNumberShortcut(state: AskState, digit: number): AskState {
 	}
 
 	const question = getCurrentQuestion(state);
-	if (!question) {
-		return state;
-	}
-
 	const index = digit - 1;
-	const option = getRenderableOptions(question)[index];
-	if (!option) {
+	const option = question ? getRenderableOptions(question)[index] : undefined;
+	if (!(question && option)) {
 		return state;
 	}
 
-	const selectedState = { ...state, activeOptionIndex: index };
-	if (option.isCustomOption) {
-		return setView(selectedState, inputView(question.id));
-	}
-
-	if (question.type === "multi") {
-		return updateAnswer(selectedState, question.id, (answer) =>
-			toggleSelection(answer, option, index)
-		);
-	}
-
-	const nextState = updateAnswer(selectedState, question.id, (answer) =>
-		setSingleSelection(answer, option, index)
-	);
-	return advanceToNextTab(nextState);
+	return activateCurrentOption({ ...state, activeOptionIndex: index }, "digit");
 }
 
 export function saveCustomAnswer(state: AskState, rawValue: string): AskState {
@@ -245,20 +167,52 @@ export function saveNote(state: AskState, rawValue: string): AskState {
 	return saveNoteValue(state, rawValue);
 }
 
-export function cancelFlow(state: AskState): AskState {
-	if (isEditingView(state)) {
-		return exitEditingView(state);
+function completeSubmitAction(state: AskState): AskState {
+	if (state.activeSubmitActionIndex === 2) {
+		return { ...state, cancelled: true, completed: true };
 	}
-	return {
-		...state,
-		cancelled: true,
-		completed: true,
-	};
+	if (state.activeSubmitActionIndex === 1) {
+		return { ...state, mode: "elaborate", completed: true };
+	}
+	return { ...state, mode: "submit", completed: true };
 }
 
-export function dismissFlow(state: AskState): AskState {
-	const nextState = cancelFlow(state);
-	return nextState.completed ? nextState : cancelFlow(nextState);
+function activateCurrentOption(
+	state: AskState,
+	trigger: "toggle" | "confirm" | "digit"
+): AskState {
+	const question = getCurrentQuestion(state);
+	const option = getCurrentOption(state);
+	if (!(question && option)) {
+		return state;
+	}
+	if (option.isCustomOption) {
+		return setView(state, inputView(question.id));
+	}
+	if (question.type === "multi") {
+		if (trigger === "confirm") {
+			return advanceToNextTab(state);
+		}
+		return updateAnswer(state, question.id, (answer) =>
+			toggleSelection(answer, option, state.activeOptionIndex)
+		);
+	}
+
+	const nextState = updateAnswer(state, question.id, (answer) => {
+		if (trigger === "toggle") {
+			const isSelected = answer.selected.some(
+				(selection) => selection.value === option.value
+			);
+			if (isSelected) {
+				return {
+					...answer,
+					selected: [],
+				};
+			}
+		}
+		return setSingleSelection(answer, option, state.activeOptionIndex);
+	});
+	return trigger === "toggle" ? nextState : advanceToNextTab(nextState);
 }
 
 function saveInputValue(
@@ -308,42 +262,6 @@ function saveNoteValue(state: AskState, rawValue: string): AskState {
 	return nextState;
 }
 
-function moveTabBy(state: AskState, delta: 1 | -1): AskState {
-	const totalTabs = state.questions.length + 1;
-	const activeTabIndex = (state.activeTabIndex + delta + totalTabs) % totalTabs;
-	return {
-		...state,
-		activeTabIndex,
-		activeOptionIndex: 0,
-		activeSubmitActionIndex: 0,
-		view:
-			activeTabIndex >= state.questions.length ? submitView() : navigateView(),
-	};
-}
-
-function moveOptionBy(state: AskState, delta: 1 | -1): AskState {
-	if (isSubmitTab(state)) {
-		return {
-			...state,
-			activeSubmitActionIndex: clamp(
-				state.activeSubmitActionIndex + delta,
-				0,
-				SUBMIT_ACTION_COUNT - 1
-			),
-		};
-	}
-
-	const options = getRenderableOptions(getCurrentQuestion(state));
-	return {
-		...state,
-		activeOptionIndex: clamp(
-			state.activeOptionIndex + delta,
-			0,
-			Math.max(0, options.length - 1)
-		),
-	};
-}
-
 function setView(state: AskState, view: AskState["view"]): AskState {
 	return {
 		...state,
@@ -388,8 +306,4 @@ function updateAnswer(
 		...state,
 		answers,
 	};
-}
-
-function clamp(value: number, min: number, max: number): number {
-	return Math.min(max, Math.max(min, value));
 }

@@ -1,189 +1,141 @@
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
-import { isOptionSelected } from "../state/answers.ts";
+import { UI_DIMENSIONS } from "./constants.ts";
 import {
-	getAnswer,
-	getOptionNote,
-	getQuestionNote,
-	isInputOpenForQuestion,
-	isOptionNoteOpen,
-	isQuestionNoteOpen,
-} from "../state/selectors.ts";
-import type { AskDisplayOption } from "../types.ts";
-import { UI_DIMENSIONS, UI_TEXT } from "./constants.ts";
-import {
-	getSavedNotePrefixes,
 	measurePreviewLeftWidth,
 	mergeColumns,
+	pushSavedNote,
 	pushWrappedText,
 	renderEditorBlock,
 	renderPreviewPaneContent,
 } from "./render-helpers.ts";
-import type {
-	OptionDetailRenderContext,
-	QuestionRenderContext,
-	Theme,
-} from "./render-types.ts";
+import type { QuestionRenderContext, Theme } from "./render-types.ts";
+import {
+	buildQuestionScreenModel,
+	type OptionDetailModel,
+	type OptionRowModel,
+} from "./view-models/question.ts";
 
 export function renderQuestionScreen(context: QuestionRenderContext) {
 	const { lines, question, theme, width } = context;
-	pushWrappedText(lines, question.prompt, width, theme, "text", " ", " ");
-	const renderedQuestionNote = renderQuestionNote(context);
-	if (!renderedQuestionNote) {
-		lines.push("");
-	}
+	const model = buildQuestionScreenModel(context);
 
-	if (question.type === "preview") {
-		renderPreviewQuestion(context);
+	pushWrappedText(lines, question.prompt, width, theme, "text", " ", " ");
+	renderQuestionNote(lines, model.questionNote, context);
+
+	if (model.mode === "preview") {
+		renderPreviewQuestion(context, model);
 		return;
 	}
 
-	renderStandardQuestion(context);
+	for (const row of model.rows) {
+		renderStandardOption(lines, row, context);
+	}
 }
 
-function renderQuestionNote(context: QuestionRenderContext): boolean {
-	const { lines, state, question, theme, width, editor } = context;
-	if (isQuestionNoteOpen(state, question.id)) {
-		renderQuestionNoteEditor(
-			lines,
-			editor,
-			width,
-			theme,
-			UI_TEXT.editorPlaceholderNote
-		);
+function renderQuestionNote(
+	lines: string[],
+	questionNote: ReturnType<typeof buildQuestionScreenModel>["questionNote"],
+	context: QuestionRenderContext
+) {
+	if (!questionNote) {
 		lines.push("");
-		return true;
+		return;
 	}
-
-	const existingNote = getQuestionNote(state, question.id);
-	if (!existingNote) {
-		return false;
+	if (questionNote.kind === "editor") {
+		renderEditorWithIndent({
+			lines,
+			editor: context.editor,
+			width: context.width,
+			theme: context.theme,
+			indent: " ",
+			padding: UI_DIMENSIONS.editorContentPadding,
+			placeholder: questionNote.placeholder,
+		});
+		lines.push("");
+		return;
 	}
-	const { prefix, continuationPrefix } = getSavedNotePrefixes(theme, {
+	pushSavedNote({
+		lines,
+		note: questionNote.text,
+		width: context.width,
+		theme: context.theme,
 		indent: " ",
 	});
-	pushWrappedText(
-		lines,
-		existingNote,
-		width,
-		theme,
-		"muted",
-		prefix,
-		continuationPrefix
-	);
 	lines.push("");
-	return true;
-}
-
-function renderStandardQuestion(context: QuestionRenderContext) {
-	const { options } = context;
-	for (let index = 0; index < options.length; index++) {
-		renderStandardOption(context, options[index], index);
-	}
 }
 
 function renderStandardOption(
-	context: QuestionRenderContext,
-	option: AskDisplayOption,
-	index: number
+	lines: string[],
+	row: OptionRowModel,
+	context: QuestionRenderContext
 ) {
-	const { lines, state, question, theme, width } = context;
-	const answer = getAnswer(state, question.id);
-	const selected = index === state.activeOptionIndex;
-	const isAnsweredOption = option.isCustomOption
-		? !!answer?.customText
-		: isOptionSelected(answer, option.value);
-	const pointer = selected ? "❯ " : "  ";
-	const prefix = getOptionPrefix(question.type, option, isAnsweredOption);
-	const optionColor = getOptionColor(isAnsweredOption, selected);
-	if (
-		option.isCustomOption &&
-		selected &&
-		isInputOpenForQuestion(state, question.id)
-	) {
-		renderInteractiveCustomOption(context, index, pointer, prefix, optionColor);
+	if (row.isCustom && row.detail?.kind === "editor") {
+		renderInteractiveCustomOption(lines, row, context);
 		return;
 	}
 
 	pushWrappedText(
 		lines,
-		`${index + 1}. ${prefix}${option.label}`,
-		width,
-		theme,
-		optionColor,
-		pointer,
-		" ".repeat(visibleWidth(pointer))
+		`${row.index + 1}. ${row.prefix}${row.label}`,
+		context.width,
+		context.theme,
+		row.color,
+		row.pointer,
+		" ".repeat(visibleWidth(row.pointer))
 	);
-	renderOptionMeta({
-		...context,
-		questionId: question.id,
-		answer,
-		option,
-		selected,
+	renderOptionDescription(lines, row.description, context.width, context.theme);
+	renderOptionDetail(lines, row.detail, context, {
+		suppressLeadingGap: !!row.description,
 	});
 }
 
-function renderPreviewQuestion(context: QuestionRenderContext) {
-	const { lines, state, question, options, theme, width } = context;
-	const add = (text = "") => lines.push(truncateToWidth(text, width));
-	const selectedOption = options[state.activeOptionIndex];
-	const answer = getAnswer(state, question.id);
+function renderPreviewQuestion(
+	context: QuestionRenderContext,
+	model: ReturnType<typeof buildQuestionScreenModel>
+) {
+	if (model.mode !== "preview") {
+		return;
+	}
 
-	if (selectedOption?.isCustomOption) {
-		renderPreviewOptionList(state, options, theme, width, answer).forEach(add);
-	} else if (width >= UI_DIMENSIONS.previewWideMinWidth && options.length > 0) {
+	const { lines, width, theme } = context;
+	const add = (text = "") => lines.push(truncateToWidth(text, width));
+
+	if (model.previewLayout === "custom") {
+		renderPreviewOptionList(model.rows, theme, width).forEach(add);
+	} else if (model.previewLayout === "wide") {
 		renderWidePreviewLayout(
 			add,
-			state,
-			options,
+			model.rows,
 			theme,
 			width,
-			answer,
-			selectedOption
+			model.selectedOption
 		);
 	} else {
 		renderStackedPreviewLayout(
 			add,
-			state,
-			options,
+			model.rows,
 			theme,
 			width,
-			answer,
-			selectedOption
+			model.selectedOption
 		);
 	}
 
-	renderOptionEditorOrNote({
-		...context,
-		questionId: question.id,
-		answer,
-		option: selectedOption,
-		selected: true,
-		// Custom preview options already render their inline editor/content above.
-		withGap: !selectedOption?.isCustomOption,
-	});
+	renderOptionDetail(lines, model.selectedOptionDetail, context);
 }
 
 function renderWidePreviewLayout(
 	add: (text?: string) => void,
-	state: QuestionRenderContext["state"],
-	options: QuestionRenderContext["options"],
+	rows: OptionRowModel[],
 	theme: Theme,
 	width: number,
-	answer: ReturnType<typeof getAnswer>,
-	selectedOption: AskDisplayOption | undefined
+	selectedOption: ReturnType<typeof buildQuestionScreenModel>["selectedOption"]
 ) {
-	const leftWidth = measurePreviewLeftWidth(options, width);
+	const leftWidth = measurePreviewLeftWidth(rows, width);
 	const rightWidth = Math.max(
 		UI_DIMENSIONS.previewMinRightWidth,
 		width - leftWidth - 2
 	);
-	const leftPane = renderPreviewOptionList(
-		state,
-		options,
-		theme,
-		leftWidth,
-		answer
-	);
+	const leftPane = renderPreviewOptionList(rows, theme, leftWidth);
 	const rightPane = renderPreviewPaneContent(selectedOption, theme, rightWidth);
 	for (const line of mergeColumns(leftPane, rightPane, leftWidth, width)) {
 		add(line);
@@ -192,294 +144,140 @@ function renderWidePreviewLayout(
 
 function renderStackedPreviewLayout(
 	add: (text?: string) => void,
-	state: QuestionRenderContext["state"],
-	options: QuestionRenderContext["options"],
+	rows: OptionRowModel[],
 	theme: Theme,
 	width: number,
-	answer: ReturnType<typeof getAnswer>,
-	selectedOption: AskDisplayOption | undefined
+	selectedOption: ReturnType<typeof buildQuestionScreenModel>["selectedOption"]
 ) {
-	renderPreviewOptionList(state, options, theme, width, answer).forEach(add);
+	renderPreviewOptionList(rows, theme, width).forEach(add);
 	add("");
 	renderPreviewPaneContent(selectedOption, theme, width).forEach(add);
 }
 
 function renderPreviewOptionList(
-	state: QuestionRenderContext["state"],
-	options: QuestionRenderContext["options"],
+	rows: OptionRowModel[],
 	theme: Theme,
-	width: number,
-	answer: ReturnType<typeof getAnswer>
+	width: number
 ): string[] {
 	const lines: string[] = [];
-	for (let index = 0; index < options.length; index++) {
-		const option = options[index];
-		const selected = index === state.activeOptionIndex;
-		const isAnsweredOption = option.isCustomOption
-			? !!answer?.customText
-			: isOptionSelected(answer, option.value);
+	for (const row of rows) {
 		pushWrappedText(
 			lines,
-			`${index + 1}. ${option.label}`,
+			`${row.index + 1}. ${row.label}`,
 			width,
 			theme,
-			getOptionColor(isAnsweredOption, selected),
-			selected ? "❯ " : "  ",
+			row.color,
+			row.pointer,
 			"  "
 		);
-		if (option.description) {
-			pushWrappedText(
-				lines,
-				option.description,
-				width,
-				theme,
-				"muted",
-				"     ",
-				"     "
-			);
-		}
+		renderOptionDescription(lines, row.description, width, theme);
 	}
 	return lines;
 }
 
-function renderOptionMeta(
-	context: QuestionRenderContext & {
-		questionId: string;
-		answer: ReturnType<typeof getAnswer>;
-		option: AskDisplayOption;
-		selected: boolean;
-	}
+function renderOptionDetail(
+	lines: string[],
+	detail: OptionDetailModel | undefined,
+	context: QuestionRenderContext,
+	options: { suppressLeadingGap?: boolean } = {}
 ) {
-	const { lines, option, theme, width } = context;
-	if (option.description) {
-		pushWrappedText(
-			lines,
-			option.description,
-			width,
-			theme,
-			"muted",
-			"     ",
-			"     "
-		);
-	}
-	renderOptionEditorOrNote(context);
-}
-
-function renderOptionEditorOrNote(context: OptionDetailRenderContext) {
-	const { lines, option, withGap } = context;
-	if (!option) {
+	if (!detail) {
 		return;
 	}
-
-	const renderState = getOptionDetailRenderState(context);
-	if (withGap && hasOptionDetailContent(renderState)) {
+	if (detail.withGap && !options.suppressLeadingGap) {
 		lines.push("");
 	}
-	if (renderOptionEditor(context, renderState)) {
+	if (detail.kind === "editor") {
+		renderEditorWithIndent({
+			lines,
+			editor: context.editor,
+			width: context.width,
+			theme: context.theme,
+			indent: "     ",
+			padding: UI_DIMENSIONS.editorIndentedPadding,
+			placeholder: detail.placeholder,
+		});
 		return;
 	}
-	if (renderOptionContent(context, renderState)) {
+	if (detail.kind === "saved-note") {
+		pushSavedNote({
+			lines,
+			note: detail.text,
+			width: context.width,
+			theme: context.theme,
+			indent: "     ",
+		});
 		return;
-	}
-	renderSavedOptionNote(context, renderState.optionNote);
-}
-
-function getOptionDetailRenderState(context: OptionDetailRenderContext) {
-	const { state, questionId, answer, option, selected } = context;
-	const inputOpen =
-		option?.isCustomOption &&
-		selected &&
-		isInputOpenForQuestion(state, questionId);
-	const noteOpen =
-		!!option &&
-		!option.isCustomOption &&
-		isOptionNoteOpen(state, questionId, option.value);
-	const optionNote =
-		option && !option.isCustomOption
-			? getOptionNote(state, questionId, option.value)
-			: undefined;
-	const customText = option?.isCustomOption ? answer?.customText : undefined;
-
-	return {
-		inputOpen,
-		noteOpen,
-		optionNote,
-		customText,
-	};
-}
-
-function hasOptionDetailContent(
-	renderState: ReturnType<typeof getOptionDetailRenderState>
-) {
-	return !!(
-		renderState.noteOpen ||
-		renderState.inputOpen ||
-		renderState.customText ||
-		renderState.optionNote
-	);
-}
-
-function renderOptionEditor(
-	context: OptionDetailRenderContext,
-	renderState: ReturnType<typeof getOptionDetailRenderState>
-): boolean {
-	const { lines, editor, width, theme } = context;
-	if (renderState.noteOpen) {
-		renderIndentedEditor(
-			lines,
-			editor,
-			width,
-			theme,
-			UI_TEXT.editorPlaceholderNote
-		);
-		return true;
-	}
-	if (renderState.inputOpen) {
-		renderIndentedEditor(
-			lines,
-			editor,
-			width,
-			theme,
-			UI_TEXT.editorPlaceholderInput
-		);
-		return true;
-	}
-	return false;
-}
-
-function renderOptionContent(
-	context: OptionDetailRenderContext,
-	renderState: ReturnType<typeof getOptionDetailRenderState>
-): boolean {
-	const { lines, option, theme, width } = context;
-	if (!(option?.isCustomOption && renderState.customText)) {
-		return false;
 	}
 	pushWrappedText(
 		lines,
-		renderState.customText,
-		width,
-		theme,
+		detail.text,
+		context.width,
+		context.theme,
 		"muted",
 		"     ",
 		"     "
 	);
-	return true;
 }
 
-function renderSavedOptionNote(
-	context: OptionDetailRenderContext,
-	optionNote: string | undefined
-) {
-	if (!optionNote) {
-		return;
-	}
-	const { lines, theme, width } = context;
-	const { prefix, continuationPrefix } = getSavedNotePrefixes(theme, {
-		indent: "     ",
-	});
-	pushWrappedText(
-		lines,
-		optionNote,
-		width,
-		theme,
-		"muted",
-		prefix,
-		continuationPrefix
-	);
-}
-
-function renderQuestionNoteEditor(
-	lines: string[],
-	editor: QuestionRenderContext["editor"],
-	width: number,
-	theme: Theme,
-	placeholder: string
-) {
+function renderEditorWithIndent(args: {
+	lines: string[];
+	editor: QuestionRenderContext["editor"];
+	width: number;
+	theme: Theme;
+	indent: string;
+	padding: number;
+	placeholder: string;
+}) {
+	const { lines, editor, width, theme, indent, padding, placeholder } = args;
 	renderEditorBlock({
 		lines,
 		editorLines: editor.render(
-			Math.max(
-				UI_DIMENSIONS.editorMinWidth,
-				width - UI_DIMENSIONS.editorContentPadding
-			)
+			Math.max(UI_DIMENSIONS.editorMinWidth, width - padding)
 		),
 		width,
 		theme,
-		indent: " ",
-		availableWidth: width - 1,
+		indent,
+		availableWidth: width - visibleWidth(indent),
 		placeholder,
 		isEmpty: editor.getText().length === 0,
 	});
-}
-
-function renderIndentedEditor(
-	lines: string[],
-	editor: QuestionRenderContext["editor"],
-	width: number,
-	theme: Theme,
-	placeholder: string
-) {
-	renderEditorBlock({
-		lines,
-		editorLines: editor.render(
-			Math.max(
-				UI_DIMENSIONS.editorMinWidth,
-				width - UI_DIMENSIONS.editorIndentedPadding
-			)
-		),
-		width,
-		theme,
-		indent: "     ",
-		availableWidth: width - 5,
-		placeholder,
-		isEmpty: editor.getText().length === 0,
-	});
-}
-
-function getOptionPrefix(
-	questionType: QuestionRenderContext["question"]["type"],
-	option: AskDisplayOption,
-	isAnsweredOption: boolean
-): string {
-	if (questionType !== "multi" || option.isCustomOption) {
-		return "";
-	}
-	return `[${isAnsweredOption ? "x" : " "}] `;
 }
 
 function renderInteractiveCustomOption(
-	context: QuestionRenderContext,
-	index: number,
-	pointer: string,
-	prefix: string,
-	optionColor: ReturnType<typeof getOptionColor>
+	lines: string[],
+	row: OptionRowModel,
+	context: QuestionRenderContext
 ) {
-	const { lines, editor, theme, width } = context;
 	pushWrappedText(
 		lines,
-		`${index + 1}. ${prefix}Type your own`,
-		width,
-		theme,
-		optionColor,
-		pointer,
-		" ".repeat(visibleWidth(pointer))
+		`${row.index + 1}. ${row.prefix}${row.label}`,
+		context.width,
+		context.theme,
+		row.color,
+		row.pointer,
+		" ".repeat(visibleWidth(row.pointer))
 	);
-	renderIndentedEditor(
+	renderEditorWithIndent({
 		lines,
-		editor,
-		width,
-		theme,
-		UI_TEXT.editorPlaceholderInput
-	);
+		editor: context.editor,
+		width: context.width,
+		theme: context.theme,
+		indent: "     ",
+		padding: UI_DIMENSIONS.editorIndentedPadding,
+		placeholder:
+			row.detail?.kind === "editor" ? row.detail.placeholder : "Type answer...",
+	});
 }
 
-function getOptionColor(isAnsweredOption: boolean, selected: boolean) {
-	if (isAnsweredOption) {
-		return "success";
+function renderOptionDescription(
+	lines: string[],
+	description: string | undefined,
+	width: number,
+	theme: Theme
+) {
+	if (!description) {
+		return;
 	}
-	if (selected) {
-		return "accent";
-	}
-	return "text";
+	pushWrappedText(lines, description, width, theme, "muted", "     ", "     ");
 }

@@ -1,6 +1,7 @@
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { NO_PREVIEW_TEXT } from "../constants.ts";
+import { clamp } from "../math.ts";
 import { wrapText } from "../text.ts";
 import { UI_DIMENSIONS, UI_TEXT } from "./constants.ts";
 
@@ -343,6 +344,30 @@ export function getSavedNotePrefixes(
 	};
 }
 
+export function pushSavedNote(args: {
+	lines: string[];
+	note: string;
+	width: number;
+	theme: Theme;
+	indent: string;
+	label?: string;
+}) {
+	const { lines, note, width, theme, indent, label } = args;
+	const { prefix, continuationPrefix } = getSavedNotePrefixes(theme, {
+		indent,
+		label,
+	});
+	pushWrappedText(
+		lines,
+		note,
+		width,
+		theme,
+		"muted",
+		prefix,
+		continuationPrefix
+	);
+}
+
 export function renderFooterText(
 	mode: "input" | "note" | "submit" | "multi" | "default"
 ) {
@@ -362,8 +387,4 @@ export function renderFooterText(
 
 function padToVisibleWidth(text: string, width: number): string {
 	return text + " ".repeat(Math.max(0, width - visibleWidth(text)));
-}
-
-function clamp(value: number, min: number, max: number): number {
-	return Math.min(max, Math.max(min, value));
 }

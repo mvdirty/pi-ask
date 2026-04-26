@@ -5,6 +5,11 @@ import type {
 	AskStateAnswer,
 } from "../types.ts";
 
+export interface ExtraOptionNote {
+	label: string;
+	note: string;
+}
+
 export function emptyAnswer(): AskStateAnswer {
 	return { selected: [] };
 }
@@ -135,6 +140,34 @@ export function isAnswerAnswered(answer?: AskStateAnswer): boolean {
 	return answer.selected.length > 0 || !!answer.customText?.trim();
 }
 
+export function hasAnswerNotes(answer?: AskStateAnswer): boolean {
+	return !!(answer?.note || answer?.optionNotes);
+}
+
+export function isResultAnswerEmpty(answer: AskResultAnswer): boolean {
+	return (
+		answer.values.length === 0 &&
+		answer.labels.length === 0 &&
+		answer.indices.length === 0 &&
+		!answer.customText &&
+		!answer.note &&
+		(!answer.optionNotes || Object.keys(answer.optionNotes).length === 0)
+	);
+}
+
+export function isResultAnswerCommitted(answer: AskResultAnswer): boolean {
+	return (
+		answer.values.length > 0 ||
+		answer.labels.length > 0 ||
+		answer.indices.length > 0 ||
+		!!answer.customText
+	);
+}
+
+export function isCustomOnlyAnswer(answer: AskResultAnswer): boolean {
+	return answer.indices.length === 0 && !!answer.customText;
+}
+
 export function isOptionSelected(
 	answer: AskStateAnswer | undefined,
 	optionValue: string
@@ -176,6 +209,23 @@ export function serializeAnswer(answer: AskStateAnswer): AskResultAnswer {
 				? selectedNotes
 				: undefined,
 	};
+}
+
+export function getExtraOptionNotes(args: {
+	answer: AskStateAnswer;
+	questionOptions: Array<{ value: string; label: string }>;
+	selectedValues?: Iterable<string>;
+}): ExtraOptionNote[] {
+	const selectedValues = new Set(args.selectedValues ?? []);
+	return Object.entries(args.answer.optionNotes ?? {})
+		.filter(([value, note]) => !selectedValues.has(value) && Boolean(note))
+		.map(([value, note]) => {
+			const option = args.questionOptions.find(
+				(candidate) => candidate.value === value
+			);
+			return option ? { label: option.label, note } : undefined;
+		})
+		.filter((entry): entry is ExtraOptionNote => Boolean(entry));
 }
 
 function cloneSelection(selection: AskSelectedOption): AskSelectedOption {

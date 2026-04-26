@@ -1,13 +1,16 @@
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { Editor, type EditorTheme } from "@mariozechner/pi-tui";
 import { createInitialState } from "../state/create.ts";
+import {
+	getEditorDraft,
+	saveEditorDraft,
+	submitEditorDraft,
+	syncStateToSelection,
+} from "../state/editor.ts";
 import { toAskResult } from "../state/result.ts";
 import {
-	getAnswer,
 	getCurrentOption,
 	getCurrentQuestion,
-	getOptionNote,
-	getQuestionNote,
 	isSubmitTab,
 } from "../state/selectors.ts";
 import {
@@ -15,14 +18,10 @@ import {
 	cancelFlow,
 	confirmCurrentSelection,
 	dismissFlow,
-	enterInputMode,
 	enterOptionNoteMode,
 	enterQuestionNoteMode,
 	moveOption,
 	moveTab,
-	saveCustomAnswer,
-	saveNote,
-	submitCustomAnswer,
 	toggleCurrentMultiOption,
 } from "../state/transitions.ts";
 import { isEditingView } from "../state/view.ts";
@@ -79,7 +78,7 @@ function createAskFlowController(
 	};
 
 	controller.editor.onSubmit = (value) => submitEditor(controller, value);
-	syncInputModeWithSelection(controller);
+	syncSelection(controller);
 
 	return {
 		render: (width: number) => renderController(controller, width),
@@ -123,27 +122,19 @@ function handleEditingCommand(
 	data: string
 ) {
 	if (command.kind === "dismiss") {
-		commitNavigation(controller, dismissFlow(controller.state));
-		maybeFinish(controller);
+		commitState(controller, dismissFlow(controller.state), { finish: true });
 		return;
 	}
 	if (command.kind === "editMoveTab") {
-		controller.state = saveEditorAndMoveTab(controller, command.delta);
-		syncInputModeWithSelection(controller);
-		refresh(controller);
+		commitSavedEditorNavigation(controller, moveTab, command.delta);
 		return;
 	}
 	if (command.kind === "editMoveOption") {
-		controller.state = saveEditorAndMoveOption(controller, command.delta);
-		syncInputModeWithSelection(controller);
-		refresh(controller);
+		commitSavedEditorNavigation(controller, moveOption, command.delta);
 		return;
 	}
 	if (command.kind === "editClose") {
-		controller.state = saveEditorWithoutAdvancing(controller);
-		controller.suppressAutoInputForSelection =
-			controller.state.view.kind !== "input";
-		refresh(controller);
+		closeEditor(controller);
 		return;
 	}
 	if (command.kind === "delegateToEditor") {
@@ -158,10 +149,10 @@ function handleNavigationCommand(
 ) {
 	switch (command.kind) {
 		case "moveTab":
-			navigateTabs(controller, command.delta);
+			commitState(controller, moveTab(controller.state, command.delta));
 			return;
 		case "moveOption":
-			navigateOptions(controller, command.delta);
+			commitState(controller, moveOption(controller.state, command.delta));
 			return;
 		case "toggleMulti":
 			handleToggleCurrentOption(controller);
@@ -173,22 +164,21 @@ function handleNavigationCommand(
 			openOptionNote(controller);
 			return;
 		case "confirm":
-			commitNavigation(controller, confirmCurrentSelection(controller.state));
-			maybeFinish(controller);
+			commitState(controller, confirmCurrentSelection(controller.state), {
+				finish: true,
+			});
 			return;
 		case "cancel":
-			commitNavigation(controller, cancelFlow(controller.state));
-			maybeFinish(controller);
+			commitState(controller, cancelFlow(controller.state), { finish: true });
 			return;
 		case "numberShortcut":
-			commitNavigation(
+			commitState(
 				controller,
 				applyNumberShortcut(controller.state, command.digit)
 			);
 			return;
 		case "dismiss":
-			commitNavigation(controller, dismissFlow(controller.state));
-			maybeFinish(controller);
+			commitState(controller, dismissFlow(controller.state), { finish: true });
 			return;
 		case "ignore":
 		case "editMoveTab":
@@ -201,27 +191,12 @@ function handleNavigationCommand(
 	}
 }
 
-function navigateTabs(controller: AskFlowController, delta: 1 | -1) {
-	controller.suppressAutoInputForSelection = false;
-	controller.state = moveTab(controller.state, delta);
-	syncInputModeWithSelection(controller);
-	refresh(controller);
-}
-
-function navigateOptions(controller: AskFlowController, delta: 1 | -1) {
-	controller.suppressAutoInputForSelection = false;
-	controller.state = moveOption(controller.state, delta);
-	syncInputModeWithSelection(controller);
-	refresh(controller);
-}
-
 function handleToggleCurrentOption(controller: AskFlowController) {
 	const question = getCurrentQuestion(controller.state);
 	if (!question) {
 		return;
 	}
-	controller.suppressAutoInputForSelection = false;
-	commitNavigation(controller, toggleCurrentMultiOption(controller.state));
+	commitState(controller, toggleCurrentMultiOption(controller.state));
 }
 
 function openQuestionNote(controller: AskFlowController) {
@@ -229,9 +204,13 @@ function openQuestionNote(controller: AskFlowController) {
 	if (!question || isSubmitTab(controller.state)) {
 		return;
 	}
-	controller.state = enterQuestionNoteMode(controller.state, question.id);
-	hydrateEditorForCurrentView(controller);
-	refresh(controller);
+	commitState(
+		controller,
+		enterQuestionNoteMode(controller.state, question.id),
+		{
+			syncSelection: false,
+		}
+	);
 }
 
 function openOptionNote(controller: AskFlowController) {
@@ -244,38 +223,51 @@ function openOptionNote(controller: AskFlowController) {
 	) {
 		return;
 	}
-	controller.state = enterOptionNoteMode(
-		controller.state,
-		question.id,
-		option.value
+	commitState(
+		controller,
+		enterOptionNoteMode(controller.state, question.id, option.value),
+		{ syncSelection: false }
 	);
-	hydrateEditorForCurrentView(controller);
-	refresh(controller);
 }
 
-function commitNavigation(controller: AskFlowController, nextState: AskState) {
+function commitState(
+	controller: AskFlowController,
+	nextState: AskState,
+	options: { finish?: boolean; syncSelection?: boolean } = {}
+) {
 	controller.suppressAutoInputForSelection = false;
 	controller.state = nextState;
-	hydrateEditorForCurrentView(controller);
+	if (options.syncSelection !== false) {
+		syncSelection(controller);
+	}
+	hydrateEditor(controller);
 	refresh(controller);
+	if (options.finish) {
+		maybeFinish(controller);
+	}
 }
 
 function submitEditor(controller: AskFlowController, value: string) {
 	controller.suppressAutoInputForSelection = false;
-	controller.state = submitEditorValue(controller.state, value);
+	controller.state = submitEditorDraft(controller.state, value);
 	controller.editor.setText("");
 	refresh(controller);
 	maybeFinish(controller);
 }
 
-function submitEditorValue(state: AskState, value: string): AskState {
-	if (state.view.kind === "input") {
-		return submitCustomAnswer(state, value);
-	}
-	if (state.view.kind === "note") {
-		return saveNote(state, value);
-	}
-	return state;
+function commitSavedEditorNavigation(
+	controller: AskFlowController,
+	navigate: (state: AskState, delta: 1 | -1) => AskState,
+	delta: 1 | -1
+) {
+	commitState(controller, navigate(saveEditorState(controller), delta));
+}
+
+function closeEditor(controller: AskFlowController) {
+	const nextState = saveEditorState(controller);
+	controller.suppressAutoInputForSelection = nextState.view.kind !== "input";
+	controller.state = nextState;
+	refresh(controller);
 }
 
 function refresh(controller: AskFlowController) {
@@ -288,57 +280,21 @@ function maybeFinish(controller: AskFlowController) {
 	}
 }
 
-function hydrateEditorForCurrentView(controller: AskFlowController) {
-	controller.editor.setText(getEditorTextForCurrentView(controller.state));
+function hydrateEditor(controller: AskFlowController) {
+	controller.editor.setText(getEditorDraft(controller.state));
 }
 
-function syncInputModeWithSelection(controller: AskFlowController) {
-	if (
-		isEditingView(controller.state) ||
-		isSubmitTab(controller.state) ||
-		controller.suppressAutoInputForSelection
-	) {
+function syncSelection(controller: AskFlowController) {
+	if (controller.suppressAutoInputForSelection) {
 		return;
 	}
-
-	const question = getCurrentQuestion(controller.state);
-	const option = getCurrentOption(controller.state);
-	if (!(question && option?.isCustomOption)) {
-		return;
-	}
-
-	controller.state = enterInputMode(controller.state, question.id);
-	hydrateEditorForCurrentView(controller);
+	controller.state = syncStateToSelection(controller.state);
 }
 
-function saveEditorWithoutAdvancing(controller: AskFlowController): AskState {
+function saveEditorState(controller: AskFlowController): AskState {
 	const text = controller.editor.getText();
 	controller.editor.setText("");
-	if (controller.state.view.kind === "input") {
-		return saveCustomAnswer(controller.state, text);
-	}
-	if (controller.state.view.kind === "note") {
-		return saveNote(controller.state, text);
-	}
-	return controller.state;
-}
-
-function saveEditorAndMoveTab(
-	controller: AskFlowController,
-	delta: 1 | -1
-): AskState {
-	const nextState = saveEditorWithoutAdvancing(controller);
-	controller.suppressAutoInputForSelection = false;
-	return moveTab(nextState, delta);
-}
-
-function saveEditorAndMoveOption(
-	controller: AskFlowController,
-	delta: 1 | -1
-): AskState {
-	const nextState = saveEditorWithoutAdvancing(controller);
-	controller.suppressAutoInputForSelection = false;
-	return moveOption(nextState, delta);
+	return saveEditorDraft(controller.state, text);
 }
 
 function createEditor(tui: Tui, theme: Theme, cwd: string) {
@@ -358,20 +314,4 @@ function createEditorTheme(theme: Theme): EditorTheme {
 			selectedText: (text) => theme.fg("accent", text),
 		},
 	};
-}
-
-function getEditorTextForCurrentView(state: AskState): string {
-	if (state.view.kind === "input") {
-		return getAnswer(state, state.view.questionId)?.customText ?? "";
-	}
-	if (state.view.kind === "note") {
-		if (state.view.optionValue) {
-			return (
-				getOptionNote(state, state.view.questionId, state.view.optionValue) ??
-				""
-			);
-		}
-		return getQuestionNote(state, state.view.questionId) ?? "";
-	}
-	return "";
 }
