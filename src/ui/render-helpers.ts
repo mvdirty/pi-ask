@@ -1,9 +1,13 @@
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
-import { NO_PREVIEW_TEXT } from "../constants.ts";
+import {
+	type FooterKeymapContext,
+	renderFooterKeymaps,
+} from "../constants/keymaps.ts";
+import { NO_PREVIEW_TEXT } from "../constants/text.ts";
+import { UI_DIMENSIONS, UI_TEXT } from "../constants/ui.ts";
 import { clamp } from "../math.ts";
 import { wrapText } from "../text.ts";
-import { UI_DIMENSIONS, UI_TEXT } from "./constants.ts";
 
 type Theme = ExtensionContext["ui"]["theme"];
 type ThemeColor =
@@ -368,21 +372,8 @@ export function pushSavedNote(args: {
 	);
 }
 
-export function renderFooterText(
-	mode: "input" | "note" | "submit" | "multi" | "default"
-) {
-	switch (mode) {
-		case "input":
-			return UI_TEXT.footerInput;
-		case "note":
-			return UI_TEXT.footerNote;
-		case "submit":
-			return UI_TEXT.footerSubmit;
-		case "multi":
-			return UI_TEXT.footerMulti;
-		default:
-			return UI_TEXT.footerDefault;
-	}
+export function renderFooterText(mode: FooterKeymapContext): string {
+	return renderFooterKeymaps(mode);
 }
 
 function padToVisibleWidth(text: string, width: number): string {

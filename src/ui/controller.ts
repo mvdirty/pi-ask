@@ -27,6 +27,7 @@ import {
 import { isEditingView } from "../state/view.ts";
 import type { AskParams, AskResult, AskState } from "../types.ts";
 import { createAskAutocompleteProvider } from "./autocomplete.ts";
+import { AskHelpModal } from "./help-modal.ts";
 import type { AskInputCommand } from "./input.ts";
 import { getInputCommand } from "./input.ts";
 import { renderAskScreen } from "./render.ts";
@@ -39,11 +40,14 @@ type Tui = CustomCallbackArgs[0];
 type Theme = CustomCallbackArgs[1];
 type Keybindings = CustomCallbackArgs[2];
 type Done = (result: AskResult) => void;
-type AskFlowParams = AskParams & Pick<ExtensionContext, "cwd">;
+type AskFlowParams = AskParams &
+	Pick<ExtensionContext, "cwd"> & { ctx: ExtensionContext };
 
 interface AskFlowController {
+	ctx: ExtensionContext;
 	done: Done;
 	editor: Editor;
+	helpOpen: boolean;
 	state: AskState;
 	suppressAutoInputForSelection: boolean;
 	theme: Theme;
@@ -55,7 +59,7 @@ export function runAskFlow(
 	params: AskParams
 ): Promise<AskResult> {
 	return ctx.ui.custom<AskResult>((...args) =>
-		createAskFlowController(args, { ...params, cwd: ctx.cwd })
+		createAskFlowController(args, { ...params, cwd: ctx.cwd, ctx })
 	);
 }
 
@@ -69,8 +73,10 @@ function createAskFlowController(
 	params: AskFlowParams
 ) {
 	const controller: AskFlowController = {
+		ctx: params.ctx,
 		done,
 		editor: createEditor(tui, theme, params.cwd),
+		helpOpen: false,
 		state: createInitialState(params),
 		suppressAutoInputForSelection: false,
 		theme,
@@ -123,6 +129,10 @@ function handleEditingCommand(
 ) {
 	if (command.kind === "dismiss") {
 		commitState(controller, dismissFlow(controller.state), { finish: true });
+		return;
+	}
+	if (command.kind === "showHelp") {
+		showHelpModal(controller);
 		return;
 	}
 	if (command.kind === "editMoveTab") {
@@ -179,6 +189,9 @@ function handleNavigationCommand(
 			return;
 		case "dismiss":
 			commitState(controller, dismissFlow(controller.state), { finish: true });
+			return;
+		case "showHelp":
+			showHelpModal(controller);
 			return;
 		case "ignore":
 		case "editMoveTab":
@@ -268,6 +281,34 @@ function closeEditor(controller: AskFlowController) {
 	controller.suppressAutoInputForSelection = nextState.view.kind !== "input";
 	controller.state = nextState;
 	refresh(controller);
+}
+
+function showHelpModal(controller: AskFlowController) {
+	if (controller.helpOpen) {
+		return;
+	}
+	controller.helpOpen = true;
+	controller.ctx.ui
+		.custom<void>(
+			(_tui, _theme, _keybindings, done) =>
+				new AskHelpModal(controller.theme, () => {
+					done();
+				}),
+			{
+				overlay: true,
+				overlayOptions: {
+					anchor: "center",
+					margin: 1,
+					maxHeight: "90%",
+					minWidth: 26,
+					width: 72,
+				},
+			}
+		)
+		.finally(() => {
+			controller.helpOpen = false;
+			refresh(controller);
+		});
 }
 
 function refresh(controller: AskFlowController) {

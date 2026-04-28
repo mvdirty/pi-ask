@@ -1,4 +1,4 @@
-import { ELABORATED_SUMMARY } from "./constants.ts";
+import { ELABORATED_SUMMARY } from "./constants/text.ts";
 import { isCustomOnlyAnswer } from "./state/answers.ts";
 import type { AskResult } from "./types.ts";
 

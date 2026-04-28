@@ -205,6 +205,7 @@ This document defines the stable external behavior. It does not explain internal
 
 Main flow:
 
+- `?`: open the key bindings modal
 - `Tab`, `Shift+Tab`, `Left`, `Right`: move between tabs
 - `Up`, `Down`: move between options
 - `Enter`: confirm or submit
@@ -220,6 +221,7 @@ Editing flow:
 - `Enter`: save and submit the current input
 - `Esc`: save draft and close the editor
 - `Ctrl+C`: dismiss the entire flow immediately without saving the current editor draft
+- `?`: open the key bindings modal when the editor is empty; otherwise enter `?` as text
 - when editor has text, arrow keys and `Tab` stay in the editor so the cursor can move while typing
 - when editor is empty, `Up`/`Down` move options and `Tab`/`Shift+Tab`/`Left`/`Right` move between tabs without requiring `Esc` first
 - navigation resumes only after closing the editor with `Esc`, unless the editor is empty and the navigation keys above are used

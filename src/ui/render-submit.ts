@@ -1,6 +1,6 @@
 import { truncateToWidth } from "@mariozechner/pi-tui";
+import { UI_TEXT } from "../constants/ui.ts";
 import type { AskState } from "../types.ts";
-import { UI_TEXT } from "./constants.ts";
 import {
 	mergeColumns,
 	pushSavedNote,

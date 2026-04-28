@@ -2,7 +2,7 @@ import {
 	CANCELLED_RESULT_TEXT,
 	ELABORATED_RESULT_TEXT,
 	SUBMITTED_RESULT_TEXT,
-} from "./constants.ts";
+} from "./constants/text.ts";
 import { formatElaborationLines, formatResultLines } from "./result-format.ts";
 import type { AskResult } from "./types.ts";
 

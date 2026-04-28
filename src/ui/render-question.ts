@@ -1,5 +1,5 @@
 import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
-import { UI_DIMENSIONS } from "./constants.ts";
+import { UI_DIMENSIONS } from "../constants/ui.ts";
 import {
 	measurePreviewLeftWidth,
 	mergeColumns,

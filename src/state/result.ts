@@ -3,7 +3,7 @@ import {
 	ELABORATED_SUMMARY,
 	ELABORATION_INSTRUCTION,
 	SUBMITTED_SUMMARY,
-} from "../constants.ts";
+} from "../constants/text.ts";
 import { formatElaborationLines, formatResultLines } from "../result-format.ts";
 import type {
 	AskContinuationPayload,

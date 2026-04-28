@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { UI_DIMENSIONS } from "../src/constants/ui.ts";
 import { createInitialState } from "../src/state/create.ts";
 import {
 	applyNumberShortcut,
@@ -7,7 +8,6 @@ import {
 	enterQuestionNoteMode,
 	saveNote,
 } from "../src/state/transitions.ts";
-import { UI_DIMENSIONS } from "../src/ui/constants.ts";
 import { renderSubmitScreen } from "../src/ui/render-submit.ts";
 
 function plainTheme() {

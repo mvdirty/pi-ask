@@ -223,7 +223,7 @@ test("footer hints wrap into exact lines on narrow screens", () => {
 		"Space toggle",
 		"Enter continue",
 		"N/Shift+N note",
-		"Esc dismiss",
+		"Esc dismiss · ? help",
 	]);
 });
 
@@ -250,6 +250,6 @@ test("footer keeps earlier hint chunk on the first wrapped line", () => {
 	assert.deepEqual(lines.slice(-4, -1), [
 		"Enter confirm",
 		"N/Shift+N note",
-		"Esc dismiss",
+		"Esc dismiss · ? help",
 	]);
 });

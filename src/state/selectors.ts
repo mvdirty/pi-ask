@@ -1,4 +1,4 @@
-import { OTHER_OPTION_LABEL, OTHER_OPTION_VALUE } from "../constants.ts";
+import { OTHER_OPTION_LABEL, OTHER_OPTION_VALUE } from "../constants/text.ts";
 import type {
 	AskDisplayOption,
 	AskQuestion,

@@ -1,5 +1,6 @@
 import { visibleWidth } from "@mariozechner/pi-tui";
-import { SUBMIT_CHOICES } from "../../constants.ts";
+import { SUBMIT_CHOICES } from "../../constants/text.ts";
+import { UI_DIMENSIONS } from "../../constants/ui.ts";
 import { isCustomOnlyAnswer } from "../../state/answers.ts";
 import {
 	type ReviewAnswer,
@@ -7,7 +8,6 @@ import {
 	toReviewAnswer,
 } from "../../state/result.ts";
 import type { AskState } from "../../types.ts";
-import { UI_DIMENSIONS } from "../constants.ts";
 
 export interface ReviewSelectionModel {
 	label: string;

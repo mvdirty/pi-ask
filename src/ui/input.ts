@@ -1,7 +1,9 @@
-import { Key, matchesKey } from "@mariozechner/pi-tui";
+import {
+	ASK_KEY_BINDINGS,
+	matchesBinding,
+	matchesDigitShortcut,
+} from "../constants/keymaps.ts";
 import type { AskState } from "../types.ts";
-
-const DIGIT_PATTERN = /^[1-9]$/;
 
 export type AskInputCommand =
 	| { kind: "moveTab"; delta: 1 | -1 }
@@ -12,6 +14,7 @@ export type AskInputCommand =
 	| { kind: "confirm" }
 	| { kind: "cancel" }
 	| { kind: "dismiss" }
+	| { kind: "showHelp" }
 	| { kind: "numberShortcut"; digit: number }
 	| { kind: "editMoveTab"; delta: 1 | -1 }
 	| { kind: "editMoveOption"; delta: 1 | -1 }
@@ -24,8 +27,11 @@ export function getInputCommand(
 	data: string,
 	editingText = ""
 ): AskInputCommand {
-	if (matchesKey(data, Key.ctrl("c"))) {
+	if (matchesBinding(data, ASK_KEY_BINDINGS.dismiss)) {
 		return { kind: "dismiss" };
+	}
+	if (matchesBinding(data, ASK_KEY_BINDINGS.help) && editingText.length === 0) {
+		return { kind: "showHelp" };
 	}
 
 	if (state.view.kind === "input" || state.view.kind === "note") {
@@ -51,20 +57,20 @@ function getEditingInputCommand(
 	data: string,
 	editingText: string
 ): AskInputCommand {
-	if (matchesKey(data, Key.escape)) {
+	if (matchesBinding(data, ASK_KEY_BINDINGS.cancel)) {
 		return { kind: "editClose" };
 	}
 	if (editingText.length === 0) {
-		if (matchesKey(data, Key.tab) || matchesKey(data, Key.right)) {
+		if (matchesBinding(data, ASK_KEY_BINDINGS.nextTab)) {
 			return { kind: "editMoveTab", delta: 1 };
 		}
-		if (matchesKey(data, Key.shift("tab")) || matchesKey(data, Key.left)) {
+		if (matchesBinding(data, ASK_KEY_BINDINGS.previousTab)) {
 			return { kind: "editMoveTab", delta: -1 };
 		}
-		if (matchesKey(data, Key.up)) {
+		if (matchesBinding(data, ASK_KEY_BINDINGS.previousOption)) {
 			return { kind: "editMoveOption", delta: -1 };
 		}
-		if (matchesKey(data, Key.down)) {
+		if (matchesBinding(data, ASK_KEY_BINDINGS.nextOption)) {
 			return { kind: "editMoveOption", delta: 1 };
 		}
 	}
@@ -72,48 +78,36 @@ function getEditingInputCommand(
 }
 
 function getNavigationInputCommand(data: string): AskInputCommand {
-	if (matchesKey(data, Key.tab) || matchesKey(data, Key.right)) {
+	if (matchesBinding(data, ASK_KEY_BINDINGS.nextTab)) {
 		return { kind: "moveTab", delta: 1 };
 	}
-	if (matchesKey(data, Key.shift("tab")) || matchesKey(data, Key.left)) {
+	if (matchesBinding(data, ASK_KEY_BINDINGS.previousTab)) {
 		return { kind: "moveTab", delta: -1 };
 	}
-	if (matchesKey(data, Key.up)) {
+	if (matchesBinding(data, ASK_KEY_BINDINGS.previousOption)) {
 		return { kind: "moveOption", delta: -1 };
 	}
-	if (matchesKey(data, Key.down)) {
+	if (matchesBinding(data, ASK_KEY_BINDINGS.nextOption)) {
 		return { kind: "moveOption", delta: 1 };
 	}
-	if (matchesKey(data, Key.space)) {
+	if (matchesBinding(data, ASK_KEY_BINDINGS.toggle)) {
 		return { kind: "toggleMulti" };
 	}
-	if (matchesKey(data, Key.enter)) {
+	if (matchesBinding(data, ASK_KEY_BINDINGS.confirm)) {
 		return { kind: "confirm" };
 	}
-	if (matchesKey(data, Key.escape)) {
+	if (matchesBinding(data, ASK_KEY_BINDINGS.cancel)) {
 		return { kind: "cancel" };
 	}
-	if (isQuestionNoteShortcut(data)) {
+	if (matchesBinding(data, ASK_KEY_BINDINGS.questionNote)) {
 		return { kind: "openQuestionNote" };
 	}
-	if (isOptionNoteShortcut(data)) {
+	if (matchesBinding(data, ASK_KEY_BINDINGS.optionNote)) {
 		return { kind: "openOptionNote" };
 	}
 
-	const digit = parseDigit(data);
+	const digit = matchesDigitShortcut(data);
 	return digit === null
 		? { kind: "ignore" }
 		: { kind: "numberShortcut", digit };
-}
-
-function isOptionNoteShortcut(data: string): boolean {
-	return data === "n";
-}
-
-function isQuestionNoteShortcut(data: string): boolean {
-	return data === "N";
-}
-
-function parseDigit(data: string): number | null {
-	return DIGIT_PATTERN.test(data) ? Number(data) : null;
 }

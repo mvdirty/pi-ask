@@ -1,3 +1,4 @@
+import { UI_DIMENSIONS, UI_TEXT } from "../../constants/ui.ts";
 import { isOptionSelected } from "../../state/answers.ts";
 import {
 	getAnswer,
@@ -8,7 +9,6 @@ import {
 	isQuestionNoteOpen,
 } from "../../state/selectors.ts";
 import type { AskDisplayOption } from "../../types.ts";
-import { UI_DIMENSIONS, UI_TEXT } from "../constants.ts";
 import type { QuestionRenderContext } from "../render-types.ts";
 
 export type QuestionNoteModel =

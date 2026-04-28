@@ -93,6 +93,7 @@ Ask the agent to elaborate on notes before finalizing choices.
 
 | Key                         | Context                                 | Effect                                      |
 |-----------------------------|-----------------------------------------|---------------------------------------------|
+| `?`                         | Ask flow / empty editor                 | Open key bindings modal                     |
 | `Tab` `Shift+Tab`           | Main flow                               | Switch tabs                                 |
 | `←` `→`                     | Main flow                               | Switch tabs                                 |
 | `↑` `↓`                     | Main flow                               | Move cursor                                 |

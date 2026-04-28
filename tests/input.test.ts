@@ -164,6 +164,25 @@ test("ctrl+c dismisses the flow from both navigation and editing modes", () => {
 	});
 });
 
+test("question mark opens keymap help outside non-empty editors", () => {
+	const navigation = createInitialState({
+		questions: [
+			{
+				id: "q1",
+				prompt: "Question?",
+				options: [{ value: "a", label: "A" }],
+			},
+		],
+	});
+	const input = inputState();
+
+	assert.deepEqual(getInputCommand(navigation, "?"), { kind: "showHelp" });
+	assert.deepEqual(getInputCommand(input, "?", ""), { kind: "showHelp" });
+	assert.deepEqual(getInputCommand(input, "?", "x"), {
+		kind: "delegateToEditor",
+	});
+});
+
 test("note shortcuts use n for option notes and Shift+N for question notes", () => {
 	const navigation = createInitialState({
 		questions: [
