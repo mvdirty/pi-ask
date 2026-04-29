@@ -1,3 +1,21 @@
+# [0.7.0](https://github.com/eko24ive/pi-ask/compare/v0.6.1...v0.7.0) (2026-04-29)
+
+
+### Bug Fixes
+
+* **package:** declare bundled skills in pi manifest ([3c26bfa](https://github.com/eko24ive/pi-ask/commit/3c26bfa7c995fd4fb22d391db784ceaf76594e4c))
+* pass custom answers through elaborate output ([85962d9](https://github.com/eko24ive/pi-ask/commit/85962d985d7a8064093f8643f4706d8d98888050))
+
+
+### Features
+
+* add ask settings modal shell ([5c0d896](https://github.com/eko24ive/pi-ask/commit/5c0d8964fba099e85472c42ab442bd5b86480de1))
+* add config-backed ask keymaps ([e8a36b7](https://github.com/eko24ive/pi-ask/commit/e8a36b72eff4f43f8d3944846dbe58bb605210a9))
+* add dirty-dismiss and footer hint settings ([18120e8](https://github.com/eko24ive/pi-ask/commit/18120e880119cff23e2fdc2cf49cdf3fbb512829))
+* add review shortcut confirmation setting ([67891d1](https://github.com/eko24ive/pi-ask/commit/67891d147f4bde4bb84edc1e8eca4d91786c1056))
+* bootstrap ask config on first use ([2bf85b3](https://github.com/eko24ive/pi-ask/commit/2bf85b3f6f19a71972df8b989ccc6670397c4e38))
+* **ui:** add ask keymap help modal ([c9930b4](https://github.com/eko24ive/pi-ask/commit/c9930b494f89320498db9b9828415f331605c3ff))
+
 ## [0.6.1](https://github.com/eko24ive/pi-ask/compare/v0.6.0...v0.6.1) (2026-04-27)
 
 
